@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shopee Video Test</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0d0d0f;color:#fff;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}
+.box{width:100%;max-width:520px;background:#17171b;border:1px solid #29292f;border-radius:22px;padding:24px}
+h1{margin:0 0 8px;font-size:25px}.sub{color:#aaa;line-height:1.5;margin:0 0 22px}
+input{width:100%;padding:16px;border-radius:12px;border:1px solid #333;background:#0d0d0f;color:#fff;font-size:15px}
+button{width:100%;margin-top:12px;padding:16px;border:0;border-radius:12px;background:#ee4d2d;color:#fff;font-size:16px;font-weight:bold}
+button:disabled{opacity:.55}.linha{padding:10px 0;border-bottom:1px solid #28282e;font-size:14px}.ok{color:#50d890}.erro{color:#ff6767}.aviso{color:#ffc857}
+#status{margin-top:20px;display:none}pre{background:#09090b;border-radius:12px;padding:14px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-size:12px;color:#ccc}
+</style>
+</head>
+<body><div class="box">
+<h1>🧪 Shopee Video Test</h1>
+<p class="sub">Teste isolado para descobrir como o link do Shopee Video é resolvido.</p>
+<input id="url" type="url" value="https://br.shp.ee/asp0n4v6?fromSource=copy_link&smtt=0.0.9" placeholder="Cole o link do Shopee Video">
+<button id="botao" onclick="testar()">TESTAR VÍDEO</button>
+<div id="status"></div>
+</div>
+<script>
+const esc=s=>String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+const linha=(n,v)=>`<div class="linha ${v===true?'ok':v===false?'erro':'aviso'}">${v===true?'✅':v===false?'❌':'⚠️'} ${n}</div>`;
+async function testar(){
+ const url=document.getElementById("url").value.trim(),b=document.getElementById("botao"),s=document.getElementById("status");
+ if(!url){alert("Cole um link.");return}
+ b.disabled=true;b.textContent="TESTANDO...";s.style.display="block";s.innerHTML='<div class="linha">🔎 Iniciando teste...</div>';
+ try{
+  const r=await fetch("/.netlify/functions/shopee-test",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
+  const d=await r.json();
+  let h=linha("Link recebido",d.input_ok)+linha("Redirecionamento",d.redirect_found)+linha("Página Shopee Video",d.share_video_found)+linha("Página carregada",d.page_loaded)+linha("MP4 encontrado",d.mp4_found)+linha("M3U8 encontrado",d.m3u8_found);
+  if(d.final_url)h+=`<div class="linha"><b>URL final</b><br><br>${esc(d.final_url)}</div>`;
+  if(d.media?.length)h+=`<div class="linha ok"><b>🎉 MÍDIA ENCONTRADA</b></div>`+d.media.map(x=>`<div class="linha">${esc(x)}</div>`).join("");
+  h+=`<pre>${esc(JSON.stringify(d,null,2))}</pre>`;s.innerHTML=h;
+ }catch(e){s.innerHTML=`<div class="linha erro">❌ Erro ao chamar a Function</div><pre>${esc(e)}</pre>`}
+ finally{b.disabled=false;b.textContent="TESTAR NOVAMENTE"}
+}
+</script></body></html>
