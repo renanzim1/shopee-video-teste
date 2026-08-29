@@ -29,16 +29,17 @@ function safeInputUrl(value) {
 }
 
 function decodeText(value) {
-  let text = String(value || "");
-
-  text = text
+  return String(value || "")
     .replaceAll("\\u0026", "&")
     .replaceAll("\\u003d", "=")
     .replaceAll("\\u002F", "/")
+    .replaceAll("\\u002f", "/")
     .replaceAll("\\/", "/")
     .replaceAll("&amp;", "&");
+}
 
-  return text;
+function unique(values) {
+  return [...new Set(values.filter(Boolean))];
 }
 
 function getUniversalRedirect(urlString) {
@@ -77,13 +78,10 @@ function getUniversalRedirect(urlString) {
     }
 
     return target.toString();
+
   } catch {
     return null;
   }
-}
-
-function unique(values) {
-  return [...new Set(values.filter(Boolean))];
 }
 
 function normalizeMediaUrl(value, baseUrl) {
@@ -106,47 +104,41 @@ function normalizeMediaUrl(value, baseUrl) {
     }
 
     return url.toString();
+
   } catch {
     return null;
   }
 }
 
-function classifyMedia(url) {
+function mediaType(url) {
   const lower = String(url).toLowerCase();
 
   if (lower.includes(".mp4")) return "mp4";
   if (lower.includes(".m3u8")) return "m3u8";
 
-  return "unknown";
+  return null;
 }
 
-function extractAllMedia(text, baseUrl) {
-  const results = [];
-
+function extractMedia(text, baseUrl, source) {
   const decoded = decodeText(text);
+
+  const results = [];
 
   const patterns = [
     /https?:\/\/[^"'<>\\\s]+?\.mp4(?:\?[^"'<>\\\s]*)?/gi,
-
     /https?:\\\/\\\/[^"'<>\\\s]+?\.mp4(?:\\\?[^"'<>\\\s]*)?/gi,
 
     /https?:\/\/[^"'<>\\\s]+?\.m3u8(?:\?[^"'<>\\\s]*)?/gi,
-
     /https?:\\\/\\\/[^"'<>\\\s]+?\.m3u8(?:\\\?[^"'<>\\\s]*)?/gi,
 
-    /"(?:videoUrl|video_url|playUrl|play_url|playbackUrl|playback_url|downloadUrl|download_url|src)"\s*:\s*"([^"]+)"/gi,
-
-    /'(?:videoUrl|video_url|playUrl|play_url|playbackUrl|playback_url|downloadUrl|download_url|src)'\s*:\s*'([^']+)'/gi,
+    /"(?:videoUrl|video_url|playUrl|play_url|playbackUrl|playback_url|downloadUrl|download_url|originUrl|origin_url|src)"\s*:\s*"([^"]+)"/gi,
 
     /<video[^>]+src=["']([^"']+)["']/gi,
-
     /<source[^>]+src=["']([^"']+)["']/gi,
 
     /<meta[^>]+property=["']og:video(?::url)?["'][^>]+content=["']([^"']+)["']/gi,
 
-    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:video(?::url)?["']/gi,
-
-    /<meta[^>]+name=["']twitter:player:stream["'][^>]+content=["']([^"']+)["']/gi
+    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:video(?::url)?["']/gi
   ];
 
   for (const pattern of patterns) {
@@ -155,30 +147,26 @@ function extractAllMedia(text, baseUrl) {
     while ((match = pattern.exec(decoded)) !== null) {
       const raw = match[1] || match[0];
 
-      const normalized =
-        normalizeMediaUrl(raw, baseUrl);
+      const url = normalizeMediaUrl(
+        raw.replaceAll("\\/", "/"),
+        baseUrl
+      );
 
-      if (!normalized) continue;
+      if (!url) continue;
 
-      const type = classifyMedia(normalized);
+      const type = mediaType(url);
 
-      if (type === "unknown") continue;
+      if (!type) continue;
 
       results.push({
-        url: normalized,
-        type
+        url,
+        type,
+        source
       });
     }
   }
 
-  const seen = new Set();
-
-  return results.filter(item => {
-    if (seen.has(item.url)) return false;
-
-    seen.add(item.url);
-    return true;
-  });
+  return results;
 }
 
 function extractScripts(html, baseUrl) {
@@ -191,18 +179,19 @@ function extractScripts(html, baseUrl) {
 
   while ((match = regex.exec(html)) !== null) {
     try {
-      const url =
-        new URL(
-          decodeText(match[1]),
-          baseUrl
-        );
+      const url = new URL(
+        decodeText(match[1]),
+        baseUrl
+      );
+
+      if (url.protocol !== "https:") continue;
+
+      const host = url.hostname.toLowerCase();
 
       if (
-        url.protocol === "https:" &&
-        (
-          url.hostname.endsWith("shopee.com.br") ||
-          url.hostname.endsWith("shopee.com")
-        )
+        host.endsWith("shopee.com.br") ||
+        host.endsWith("shopee.com") ||
+        host.endsWith("shopeemobile.com")
       ) {
         scripts.push(url.toString());
       }
@@ -222,10 +211,10 @@ function extractNextData(html) {
   return match?.[1] || "";
 }
 
-function extractInterestingKeys(text) {
+function extractKeys(text) {
   const decoded = decodeText(text);
 
-  const keys = [
+  const wanted = [
     "videoUrl",
     "video_url",
     "playUrl",
@@ -234,28 +223,150 @@ function extractInterestingKeys(text) {
     "playback_url",
     "downloadUrl",
     "download_url",
+    "originUrl",
+    "origin_url",
+    "sourceUrl",
+    "source_url",
     "videoInfo",
     "video_info",
+    "videoId",
+    "video_id",
     "postId",
+    "post_id",
     "coverUrl",
     "cover_url",
-    "originUrl",
-    "origin_url"
+    "duration",
+    "watermark",
+    "withoutWatermark",
+    "noWatermark",
+    "originalVideo",
+    "original_video"
   ];
 
-  const found = [];
+  return wanted.filter(key =>
+    decoded.toLowerCase().includes(
+      key.toLowerCase()
+    )
+  );
+}
 
-  for (const key of keys) {
-    if (
-      decoded.toLowerCase().includes(
-        key.toLowerCase()
-      )
-    ) {
-      found.push(key);
+function extractPaths(text) {
+  const decoded = decodeText(text);
+
+  const results = [];
+
+  /*
+   * Apenas caminhos encontrados no JS.
+   * Não fazemos requisição para eles.
+   */
+  const regexes = [
+    /["'`](\/api\/[^"'`\s\\]{2,180})["'`]/gi,
+    /["'`](\/[^"'`\s\\]*(?:video|media|play|post)[^"'`\s\\]{0,150})["'`]/gi
+  ];
+
+  for (const regex of regexes) {
+    let match;
+
+    while ((match = regex.exec(decoded)) !== null) {
+      let value = match[1];
+
+      value = decodeText(value);
+
+      if (
+        value.length > 2 &&
+        value.length < 200
+      ) {
+        results.push(value);
+      }
     }
   }
 
-  return unique(found);
+  return unique(results).slice(0, 80);
+}
+
+function extractContext(text, keyword) {
+  const decoded = decodeText(text);
+
+  const lower = decoded.toLowerCase();
+  const target = keyword.toLowerCase();
+
+  const contexts = [];
+
+  let position = 0;
+
+  while (true) {
+    const index = lower.indexOf(
+      target,
+      position
+    );
+
+    if (index === -1) break;
+
+    const start = Math.max(
+      0,
+      index - 120
+    );
+
+    const end = Math.min(
+      decoded.length,
+      index + target.length + 220
+    );
+
+    let snippet = decoded
+      .slice(start, end)
+      .replace(/\s+/g, " ");
+
+    /*
+     * Não precisamos devolver megabytes
+     * de código para a tela.
+     */
+    if (snippet.length > 400) {
+      snippet = snippet.slice(0, 400);
+    }
+
+    contexts.push(snippet);
+
+    position = index + target.length;
+
+    if (contexts.length >= 5) {
+      break;
+    }
+  }
+
+  return unique(contexts);
+}
+
+function inspectText(text) {
+  const keys = extractKeys(text);
+
+  const contexts = {};
+
+  const important = [
+    "videoUrl",
+    "playUrl",
+    "downloadUrl",
+    "originUrl",
+    "watermark",
+    "originalVideo",
+    "postId"
+  ];
+
+  for (const key of important) {
+    const found = extractContext(
+      text,
+      key
+    );
+
+    if (found.length) {
+      contexts[key] = found;
+    }
+  }
+
+  return {
+    keys,
+    paths: extractPaths(text),
+    contexts
+  };
 }
 
 async function fetchWithTimeout(
@@ -263,14 +374,12 @@ async function fetchWithTimeout(
   options = {},
   timeoutMs = 12000
 ) {
-  const controller =
-    new AbortController();
+  const controller = new AbortController();
 
-  const timer =
-    setTimeout(
-      () => controller.abort(),
-      timeoutMs
-    );
+  const timer = setTimeout(
+    () => controller.abort(),
+    timeoutMs
+  );
 
   try {
     return await fetch(url, {
@@ -290,7 +399,7 @@ const browserHeaders = {
     "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 
   "Accept-Language":
-    "pt-BR,pt;q=0.9,en;q=0.7",
+    "pt-BR,pt;q=0.9,en-US;q=0.7,en;q=0.6",
 
   "Cache-Control":
     "no-cache",
@@ -300,14 +409,12 @@ const browserHeaders = {
 };
 
 export default async (request) => {
+
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers":
-      "Content-Type",
-    "Access-Control-Allow-Methods":
-      "POST, OPTIONS",
-    "Content-Type":
-      "application/json; charset=utf-8"
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Content-Type": "application/json; charset=utf-8"
   };
 
   if (request.method === "OPTIONS") {
@@ -331,18 +438,18 @@ export default async (request) => {
   }
 
   try {
-    const body =
-      await request.json();
 
-    const input =
-      safeInputUrl(body?.url);
+    const body = await request.json();
+
+    const input = safeInputUrl(
+      body?.url
+    );
 
     if (!input) {
       return new Response(
         JSON.stringify({
           ok: false,
-          error:
-            "Link Shopee inválido."
+          error: "Link Shopee inválido."
         }),
         {
           status: 400,
@@ -351,21 +458,19 @@ export default async (request) => {
       );
     }
 
-    const inputUrl =
-      input.toString();
+    const inputUrl = input.toString();
 
-    let current =
-      inputUrl;
+    let current = inputUrl;
 
-    let response =
-      null;
+    let response = null;
 
     const steps = [];
 
     /*
-     * RESOLVE LINK CURTO
+     * 1 - RESOLVE LINK CURTO
      */
     for (let i = 0; i < 8; i++) {
+
       const universal =
         getUniversalRedirect(current);
 
@@ -403,6 +508,7 @@ export default async (request) => {
         response.status >= 300 &&
         response.status < 400
       ) {
+
         const location =
           response.headers.get(
             "location"
@@ -432,8 +538,7 @@ export default async (request) => {
           to: next.toString()
         });
 
-        current =
-          next.toString();
+        current = next.toString();
 
         continue;
       }
@@ -442,7 +547,7 @@ export default async (request) => {
     }
 
     /*
-     * UNIVERSAL LINK -> SHARE VIDEO
+     * 2 - UNIVERSAL -> SHARE VIDEO
      */
     const universal =
       getUniversalRedirect(current);
@@ -459,13 +564,11 @@ export default async (request) => {
     }
 
     /*
-     * CARREGA PÁGINA SHARE VIDEO
+     * 3 - CARREGA SHARE VIDEO
      */
     if (
       !response ||
-      current.includes(
-        "/share-video/"
-      )
+      current.includes("/share-video/")
     ) {
       response =
         await fetchWithTimeout(
@@ -490,43 +593,55 @@ export default async (request) => {
       contentType.includes("text/plain") ||
       !contentType
     ) {
-      html =
-        await response.text();
+      html = await response.text();
 
-      if (html.length > 3500000) {
-        html =
-          html.slice(
-            0,
-            3500000
-          );
+      if (html.length > 4000000) {
+        html = html.slice(
+          0,
+          4000000
+        );
       }
     }
 
     /*
-     * BUSCA MÍDIA NO HTML
+     * 4 - HTML
      */
     const htmlMedia =
-      extractAllMedia(
+      extractMedia(
         html,
-        current
+        current,
+        "html"
       );
 
+    const htmlInspection =
+      inspectText(html);
+
     /*
-     * BUSCA __NEXT_DATA__
+     * 5 - NEXT DATA
      */
     const nextData =
       extractNextData(html);
 
     const nextMedia =
       nextData
-        ? extractAllMedia(
+        ? extractMedia(
             nextData,
-            current
+            current,
+            "__NEXT_DATA__"
           )
         : [];
 
+    const nextInspection =
+      nextData
+        ? inspectText(nextData)
+        : {
+            keys: [],
+            paths: [],
+            contexts: {}
+          };
+
     /*
-     * DESCOBRE SCRIPTS
+     * 6 - TODOS OS SCRIPTS PÚBLICOS
      */
     const scriptUrls =
       extractScripts(
@@ -534,52 +649,48 @@ export default async (request) => {
         current
       );
 
-    /*
-     * NÃO VAMOS BAIXAR DEZENAS DE JS.
-     * SOMENTE OS MAIS PROVÁVEIS.
-     */
-    const interestingScripts =
-      scriptUrls.filter(url => {
-        const lower =
-          url.toLowerCase();
-
-        return (
-          lower.includes(
-            "share-video"
-          ) ||
-          lower.includes(
-            "video"
-          )
-        );
-      }).slice(0, 5);
-
-    const scriptDiagnostics = [];
+    const scriptResults = [];
 
     const scriptMedia = [];
 
+    /*
+     * Limite de segurança:
+     * até 20 scripts.
+     */
+    const scriptsToInspect =
+      scriptUrls.slice(0, 20);
+
     for (
-      const scriptUrl
-      of interestingScripts
+      let index = 0;
+      index < scriptsToInspect.length;
+      index++
     ) {
+
+      const scriptUrl =
+        scriptsToInspect[index];
+
       try {
+
         const scriptResponse =
           await fetchWithTimeout(
             scriptUrl,
             {
+              method: "GET",
               headers: {
                 ...browserHeaders,
-                "Accept":
-                  "*/*"
-              }
+                "Accept": "*/*"
+              },
+              redirect: "follow"
             },
             8000
           );
 
         if (!scriptResponse.ok) {
-          scriptDiagnostics.push({
+          scriptResults.push({
+            index: index + 1,
             url: scriptUrl,
-            status:
-              scriptResponse.status
+            status: scriptResponse.status,
+            ok: false
           });
 
           continue;
@@ -589,90 +700,71 @@ export default async (request) => {
           await scriptResponse.text();
 
         /*
-         * limite para evitar peso excessivo
+         * Máximo de 2 MB por script.
          */
-        if (js.length > 1500000) {
-          js =
-            js.slice(
-              0,
-              1500000
-            );
+        if (js.length > 2000000) {
+          js = js.slice(
+            0,
+            2000000
+          );
         }
 
         const foundMedia =
-          extractAllMedia(
+          extractMedia(
             js,
-            current
+            current,
+            `script_${index + 1}`
           );
 
         scriptMedia.push(
           ...foundMedia
         );
 
-        scriptDiagnostics.push({
+        const inspection =
+          inspectText(js);
+
+        scriptResults.push({
+          index: index + 1,
           url: scriptUrl,
-          status:
-            scriptResponse.status,
-
-          size:
-            js.length,
-
-          interesting_keys:
-            extractInterestingKeys(
-              js
-            ),
-
-          media_found:
-            foundMedia.length
+          status: scriptResponse.status,
+          ok: true,
+          size: js.length,
+          media_found: foundMedia.length,
+          keys: inspection.keys,
+          paths: inspection.paths,
+          contexts: inspection.contexts
         });
 
       } catch (error) {
-        scriptDiagnostics.push({
+
+        scriptResults.push({
+          index: index + 1,
           url: scriptUrl,
+          ok: false,
           error:
             error instanceof Error
               ? error.message
               : String(error)
         });
+
       }
     }
 
     /*
-     * JUNTA TODAS AS VARIANTES
+     * 7 - JUNTA MÍDIAS
      */
-    const combined = [
-      ...htmlMedia.map(
-        item => ({
-          ...item,
-          source: "html"
-        })
-      ),
-
-      ...nextMedia.map(
-        item => ({
-          ...item,
-          source:
-            "__NEXT_DATA__"
-        })
-      ),
-
-      ...scriptMedia.map(
-        item => ({
-          ...item,
-          source:
-            "javascript"
-        })
-      )
+    const allMedia = [
+      ...htmlMedia,
+      ...nextMedia,
+      ...scriptMedia
     ];
 
-    const seen =
-      new Set();
+    const seen = new Set();
 
     const variants =
-      combined.filter(item => {
-        if (
-          seen.has(item.url)
-        ) {
+      allMedia.filter(item => {
+
+        if (seen.has(item.url)) {
           return false;
         }
 
@@ -701,18 +793,48 @@ export default async (request) => {
           item => item.url
         );
 
+    /*
+     * 8 - RESUMO DE PISTAS
+     */
+    const scriptsWithVideoKeys =
+      scriptResults.filter(
+        item =>
+          item.ok &&
+          Array.isArray(item.keys) &&
+          item.keys.length > 0
+      );
+
+    const scriptsWithPaths =
+      scriptResults.filter(
+        item =>
+          item.ok &&
+          Array.isArray(item.paths) &&
+          item.paths.length > 0
+      );
+
+    const allCandidatePaths =
+      unique([
+        ...htmlInspection.paths,
+        ...nextInspection.paths,
+
+        ...scriptResults.flatMap(
+          item =>
+            Array.isArray(item.paths)
+              ? item.paths
+              : []
+        )
+      ]).slice(0, 100);
+
     return new Response(
       JSON.stringify(
         {
           ok: true,
 
           version:
-            "3.0-diagnostic",
+            "4.0-investigation",
 
           stage:
-            variants.length
-              ? "variants_found"
-              : "page_loaded",
+            "investigation_complete",
 
           input_url:
             inputUrl,
@@ -720,11 +842,11 @@ export default async (request) => {
           final_url:
             current,
 
-          http_status:
-            response.status,
-
           page_loaded:
             response.ok,
+
+          http_status:
+            response.status,
 
           share_video_found:
             current.includes(
@@ -740,6 +862,10 @@ export default async (request) => {
           variant_count:
             variants.length,
 
+          /*
+           * Mantém compatibilidade
+           * com a interface atual.
+           */
           media:
             mp4.length
               ? mp4
@@ -751,6 +877,60 @@ export default async (request) => {
 
           variants,
 
+          investigation: {
+
+            html: {
+              size: html.length,
+              keys:
+                htmlInspection.keys,
+              paths:
+                htmlInspection.paths,
+              contexts:
+                htmlInspection.contexts
+            },
+
+            next_data: {
+              found:
+                nextData.length > 0,
+
+              size:
+                nextData.length,
+
+              keys:
+                nextInspection.keys,
+
+              paths:
+                nextInspection.paths,
+
+              contexts:
+                nextInspection.contexts
+            },
+
+            scripts: {
+              total_found:
+                scriptUrls.length,
+
+              total_inspected:
+                scriptsToInspect.length,
+
+              with_video_keys:
+                scriptsWithVideoKeys.length,
+
+              with_candidate_paths:
+                scriptsWithPaths.length,
+
+              results:
+                scriptResults
+            },
+
+            candidate_paths:
+              allCandidatePaths
+          },
+
+          /*
+           * Mantemos diagnostics
+           * para o index V3 não quebrar.
+           */
           diagnostics: {
             html_size:
               html.length,
@@ -761,24 +941,17 @@ export default async (request) => {
             next_data_size:
               nextData.length,
 
-            html_interesting_keys:
-              extractInterestingKeys(
-                html
-              ),
-
-            next_data_interesting_keys:
-              extractInterestingKeys(
-                nextData
-              ),
-
             total_scripts:
               scriptUrls.length,
 
             inspected_scripts:
-              interestingScripts.length,
+              scriptsToInspect.length,
 
-            script_results:
-              scriptDiagnostics
+            scripts_with_video_keys:
+              scriptsWithVideoKeys.length,
+
+            scripts_with_candidate_paths:
+              scriptsWithPaths.length
           },
 
           steps
@@ -793,13 +966,14 @@ export default async (request) => {
     );
 
   } catch (error) {
+
     return new Response(
       JSON.stringify(
         {
           ok: false,
 
           version:
-            "3.0-diagnostic",
+            "4.0-investigation",
 
           error:
             error instanceof Error
