@@ -5,6 +5,33 @@ const ALLOWED_HOSTS = [
   "sv.shopee.com.br",
 ];
 
+// ======================================================
+// CORS
+// ======================================================
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Accept, Authorization",
+  "Access-Control-Max-Age": "86400",
+};
+
+function jsonResponse(data, status = 200) {
+  return Response.json(data, {
+    status,
+
+    headers: {
+      ...CORS_HEADERS,
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
+// ======================================================
+// SHOPEE
+// ======================================================
+
 function isAllowedHost(hostname) {
   const host = hostname.toLowerCase();
 
@@ -19,7 +46,11 @@ function safeUrl(value) {
   try {
     const url = new URL(value);
 
-    if (!["http:", "https:"].includes(url.protocol)) {
+    if (
+      !["http:", "https:"].includes(
+        url.protocol
+      )
+    ) {
       return null;
     }
 
@@ -38,9 +69,12 @@ function decodeValue(value) {
 
   for (let i = 0; i < 3; i++) {
     try {
-      const decoded = decodeURIComponent(result);
+      const decoded =
+        decodeURIComponent(result);
 
-      if (decoded === result) break;
+      if (decoded === result) {
+        break;
+      }
 
       result = decoded;
     } catch {
@@ -60,22 +94,34 @@ function getUniversalRedirect(url) {
       parsed.searchParams.get("redirect") ||
       parsed.searchParams.get("url");
 
-    if (!redir) return null;
+    if (!redir) {
+      return null;
+    }
 
-    const decoded = decodeValue(redir);
+    const decoded =
+      decodeValue(redir);
 
-    return safeUrl(decoded)?.toString() || null;
+    return (
+      safeUrl(decoded)?.toString() ||
+      null
+    );
   } catch {
     return null;
   }
 }
 
-async function fetchTimeout(url, options = {}, timeout = 15000) {
-  const controller = new AbortController();
+async function fetchTimeout(
+  url,
+  options = {},
+  timeout = 15000
+) {
+  const controller =
+    new AbortController();
 
-  const timer = setTimeout(() => {
-    controller.abort();
-  }, timeout);
+  const timer =
+    setTimeout(() => {
+      controller.abort();
+    }, timeout);
 
   try {
     return await fetch(url, {
@@ -98,10 +144,15 @@ const browserHeaders = {
     "pt-BR,pt;q=0.9,en;q=0.8",
 };
 
+// ======================================================
+// NEXT DATA
+// ======================================================
+
 function extractNextData(html) {
-  const match = html.match(
-    /<script[^>]*id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i
-  );
+  const match =
+    html.match(
+      /<script[^>]*id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i
+    );
 
   if (!match?.[1]) {
     return null;
@@ -114,8 +165,19 @@ function extractNextData(html) {
   }
 }
 
-function findMp4Fields(value, path = "root", results = []) {
-  if (value === null || value === undefined) {
+// ======================================================
+// PROCURA MP4
+// ======================================================
+
+function findMp4Fields(
+  value,
+  path = "root",
+  results = []
+) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
     return results;
   }
 
@@ -133,11 +195,22 @@ function findMp4Fields(value, path = "root", results = []) {
       for (const url of matches) {
         results.push({
           path,
-          key: path.split(".").pop(),
 
-          url: url
-            .replace(/\\u0026/g, "&")
-            .replace(/\\\//g, "/"),
+          key:
+            path
+              .split(".")
+              .pop(),
+
+          url:
+            url
+              .replace(
+                /\\u0026/g,
+                "&"
+              )
+              .replace(
+                /\\\//g,
+                "/"
+              ),
         });
       }
     }
@@ -146,19 +219,24 @@ function findMp4Fields(value, path = "root", results = []) {
   }
 
   if (Array.isArray(value)) {
-    value.forEach((item, index) => {
-      findMp4Fields(
-        item,
-        `${path}[${index}]`,
-        results
-      );
-    });
+    value.forEach(
+      (item, index) => {
+        findMp4Fields(
+          item,
+          `${path}[${index}]`,
+          results
+        );
+      }
+    );
 
     return results;
   }
 
   if (typeof value === "object") {
-    for (const [key, item] of Object.entries(value)) {
+    for (
+      const [key, item]
+      of Object.entries(value)
+    ) {
       findMp4Fields(
         item,
         `${path}.${key}`,
@@ -170,34 +248,47 @@ function findMp4Fields(value, path = "root", results = []) {
   return results;
 }
 
+// ======================================================
+// DERIVA ORIGINAL / HD
+// ======================================================
+
 /*
- * IMPORTANTE:
+ * A referência que contém o sufixo
+ * da versão watermark é usada SOMENTE
+ * internamente para encontrar o endereço
+ * base do vídeo.
  *
- * A Shopee fornece uma URL que contém o sufixo
- * usado pela versão watermark.
- *
- * Nós usamos essa informação SOMENTE internamente
- * para descobrir o endereço base do vídeo original.
- *
- * A versão watermark NÃO é mais devolvida pela API.
+ * A versão watermark NÃO é devolvida
+ * para o Radar.
  */
-function deriveBaseVideoUrl(watermarkUrl) {
+
+function deriveBaseVideoUrl(
+  watermarkUrl
+) {
   try {
-    const url = new URL(watermarkUrl);
+    const url =
+      new URL(watermarkUrl);
 
     if (
-      !url.hostname.endsWith(".vod.susercontent.com") &&
-      url.hostname !== "vod.susercontent.com"
+      !url.hostname.endsWith(
+        ".vod.susercontent.com"
+      ) &&
+      url.hostname !==
+        "vod.susercontent.com"
     ) {
       return null;
     }
 
     const filename =
-      url.pathname.split("/").pop();
+      url.pathname
+        .split("/")
+        .pop();
 
     if (
       !filename ||
-      !filename.toLowerCase().endsWith(".mp4")
+      !filename
+        .toLowerCase()
+        .endsWith(".mp4")
     ) {
       return null;
     }
@@ -205,17 +296,17 @@ function deriveBaseVideoUrl(watermarkUrl) {
     /*
      * Exemplo:
      *
-     * Entrada interna:
-     *
      * arquivo.16003551753240105.7278.mp4
      *
-     * Original:
+     * vira:
      *
      * arquivo.mp4
      */
-    const match = filename.match(
-      /^(.+?)\.\d{6,}\.\d+\.mp4$/i
-    );
+
+    const match =
+      filename.match(
+        /^(.+?)\.\d{6,}\.\d+\.mp4$/i
+      );
 
     if (!match?.[1]) {
       return null;
@@ -227,16 +318,19 @@ function deriveBaseVideoUrl(watermarkUrl) {
     const parts =
       url.pathname.split("/");
 
-    parts[parts.length - 1] =
-      baseFilename;
+    parts[
+      parts.length - 1
+    ] = baseFilename;
 
     url.pathname =
       parts.join("/");
 
     /*
-     * Não carregamos parâmetros da
-     * variante utilizada como referência.
+     * O Original/HD não carrega
+     * parâmetros da variante usada
+     * como referência.
      */
+
     url.search = "";
     url.hash = "";
 
@@ -245,6 +339,10 @@ function deriveBaseVideoUrl(watermarkUrl) {
     return null;
   }
 }
+
+// ======================================================
+// CONFIRMA ORIGINAL
+// ======================================================
 
 async function verifyVideo(url) {
   if (!url) {
@@ -258,11 +356,10 @@ async function verifyVideo(url) {
 
   try {
     /*
-     * Não baixa o vídeo inteiro.
-     *
-     * Range serve somente para confirmar
-     * que o arquivo original existe no CDN.
+     * Range confirma o vídeo
+     * sem baixar o arquivo inteiro.
      */
+
     const response =
       await fetchTimeout(
         url,
@@ -271,7 +368,9 @@ async function verifyVideo(url) {
 
           headers: {
             "User-Agent":
-              browserHeaders["User-Agent"],
+              browserHeaders[
+                "User-Agent"
+              ],
 
             Accept:
               "video/mp4,video/*;q=0.9,*/*;q=0.8",
@@ -280,7 +379,8 @@ async function verifyVideo(url) {
               "bytes=0-1",
           },
 
-          redirect: "follow",
+          redirect:
+            "follow",
         },
         12000
       );
@@ -304,7 +404,9 @@ async function verifyVideo(url) {
 
     const typeIsValid =
       !contentType ||
-      contentType.includes("video") ||
+      contentType.includes(
+        "video"
+      ) ||
       contentType.includes(
         "octet-stream"
       );
@@ -322,7 +424,8 @@ async function verifyVideo(url) {
       contentLength,
 
       finalUrl:
-        response.url || url,
+        response.url ||
+        url,
     };
   } catch (error) {
     return {
@@ -334,59 +437,64 @@ async function verifyVideo(url) {
 
       contentLength: null,
 
-      error: String(
-        error?.message || error
-      ),
+      error:
+        String(
+          error?.message ||
+          error
+        ),
     };
   }
 }
 
+// ======================================================
+// NETLIFY FUNCTION
+// V6.1 ORIGINAL ONLY
+// ======================================================
+
 export default async (request) => {
-  /*
-   * CORS
-   */
+
+  // ====================================================
+  // PREFLIGHT CORS
+  // ====================================================
+
   if (request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
 
       headers: {
-        "Access-Control-Allow-Origin":
-          "*",
-
-        "Access-Control-Allow-Headers":
-          "Content-Type",
-
-        "Access-Control-Allow-Methods":
-          "POST, OPTIONS",
+        ...CORS_HEADERS,
+        "Cache-Control":
+          "no-store",
       },
     });
   }
 
-  /*
-   * Apenas POST
-   */
+  // ====================================================
+  // APENAS POST
+  // ====================================================
+
   if (request.method !== "POST") {
-    return Response.json(
+    return jsonResponse(
       {
         ok: false,
         error: "Use POST.",
       },
-      {
-        status: 405,
-
-        headers: {
-          "Access-Control-Allow-Origin":
-            "*",
-        },
-      }
+      405
     );
   }
 
   try {
+
+    // ==================================================
+    // BODY
+    // ==================================================
+
     const body =
       await request
         .json()
-        .catch(() => ({}));
+        .catch(
+          () => ({})
+        );
 
     const input =
       body.url ||
@@ -400,28 +508,21 @@ export default async (request) => {
       );
 
     if (!initialUrl) {
-      return Response.json(
+      return jsonResponse(
         {
           ok: false,
 
           error:
             "Link da Shopee inválido.",
         },
-        {
-          status: 400,
-
-          headers: {
-            "Access-Control-Allow-Origin":
-              "*",
-          },
-        }
+        400
       );
     }
 
-    /*
-     * 1.
-     * Resolve link curto da Shopee.
-     */
+    // ==================================================
+    // 1. RESOLVE LINK CURTO
+    // ==================================================
+
     const firstResponse =
       await fetchTimeout(
         initialUrl.toString(),
@@ -439,10 +540,10 @@ export default async (request) => {
       firstResponse.url ||
       initialUrl.toString();
 
-    /*
-     * 2.
-     * Resolve universal-link.
-     */
+    // ==================================================
+    // 2. UNIVERSAL LINK
+    // ==================================================
+
     const universalRedirect =
       getUniversalRedirect(
         resolvedUrl
@@ -453,11 +554,10 @@ export default async (request) => {
         universalRedirect;
     }
 
-    /*
-     * 3.
-     * Carrega a página pública
-     * do Shopee Video.
-     */
+    // ==================================================
+    // 3. PÁGINA SHOPEE VIDEO
+    // ==================================================
+
     const pageResponse =
       await fetchTimeout(
         resolvedUrl,
@@ -478,153 +578,114 @@ export default async (request) => {
     const html =
       await pageResponse.text();
 
-    /*
-     * 4.
-     * Obtém os dados Next.js.
-     */
+    // ==================================================
+    // 4. NEXT DATA
+    // ==================================================
+
     const nextData =
       extractNextData(html);
 
     if (!nextData) {
-      return Response.json(
-        {
-          ok: false,
+      return jsonResponse({
+        ok: false,
 
-          version:
-            "6.1-original-only",
+        version:
+          "6.1-original-only",
 
-          stage:
-            "next_data_not_found",
+        stage:
+          "next_data_not_found",
 
-          final_url:
-            finalPageUrl,
+        final_url:
+          finalPageUrl,
 
-          error:
-            "__NEXT_DATA__ não encontrado.",
-        },
-        {
-          status: 200,
-
-          headers: {
-            "Access-Control-Allow-Origin":
-              "*",
-
-            "Cache-Control":
-              "no-store",
-          },
-        }
-      );
+        error:
+          "__NEXT_DATA__ não encontrado.",
+      });
     }
 
-    /*
-     * 5.
-     * Procura os MP4 existentes
-     * nos dados da página.
-     */
+    // ==================================================
+    // 5. PROCURA MP4
+    // ==================================================
+
     const mp4Fields =
-      findMp4Fields(nextData);
+      findMp4Fields(
+        nextData
+      );
 
     /*
-     * Precisamos localizar internamente
-     * a referência watermark para derivar
-     * o endereço base.
-     *
-     * ELA NÃO SERÁ DEVOLVIDA AO RADAR.
+     * A referência watermark
+     * permanece SOMENTE interna.
      */
+
     const referenceMp4 =
       mp4Fields.find(
-        (item) =>
+        item =>
           item.key
             .toLowerCase()
-            .includes("watermark")
+            .includes(
+              "watermark"
+            )
       ) ||
       mp4Fields.find(
-        (item) =>
+        item =>
           item.path
             .toLowerCase()
-            .includes("watermark")
+            .includes(
+              "watermark"
+            )
       ) ||
       mp4Fields[0] ||
       null;
 
     if (!referenceMp4?.url) {
-      return Response.json(
-        {
-          ok: false,
+      return jsonResponse({
+        ok: false,
 
-          version:
-            "6.1-original-only",
+        version:
+          "6.1-original-only",
 
-          stage:
-            "video_reference_not_found",
+        stage:
+          "video_reference_not_found",
 
-          final_url:
-            finalPageUrl,
+        final_url:
+          finalPageUrl,
 
-          error:
-            "Não foi possível localizar a referência do vídeo.",
-        },
-        {
-          status: 200,
-
-          headers: {
-            "Access-Control-Allow-Origin":
-              "*",
-
-            "Cache-Control":
-              "no-store",
-          },
-        }
-      );
+        error:
+          "Não foi possível localizar a referência do vídeo.",
+      });
     }
 
-    /*
-     * 6.
-     * Cria UMA ÚNICA candidata:
-     *
-     * ORIGINAL / HD
-     */
+    // ==================================================
+    // 6. CRIA ORIGINAL / HD
+    // ==================================================
+
     const candidateOriginal =
       deriveBaseVideoUrl(
         referenceMp4.url
       );
 
     if (!candidateOriginal) {
-      return Response.json(
-        {
-          ok: false,
+      return jsonResponse({
+        ok: false,
 
-          version:
-            "6.1-original-only",
+        version:
+          "6.1-original-only",
 
-          stage:
-            "original_candidate_not_created",
+        stage:
+          "original_candidate_not_created",
 
-          original_found:
-            false,
+        original_found:
+          false,
 
-          error:
-            "Não foi possível gerar a URL do vídeo original.",
-        },
-        {
-          status: 200,
-
-          headers: {
-            "Access-Control-Allow-Origin":
-              "*",
-
-            "Cache-Control":
-              "no-store",
-          },
-        }
-      );
+        error:
+          "Não foi possível gerar a URL do vídeo original.",
+      });
     }
 
-    /*
-     * 7.
-     * Confirma que o Original/HD
-     * realmente existe.
-     */
+    // ==================================================
+    // 7. VERIFICA ORIGINAL / HD
+    // ==================================================
+
     const verification =
       await verifyVideo(
         candidateOriginal
@@ -632,171 +693,130 @@ export default async (request) => {
 
     if (!verification.ok) {
       /*
-       * IMPORTANTE:
-       *
-       * Não existe mais fallback.
-       *
-       * Se o Original/HD falhar,
-       * NÃO entregamos a versão
-       * com watermark.
+       * NÃO EXISTE FALLBACK WATERMARK.
        */
-      return Response.json(
-        {
-          ok: false,
 
-          version:
-            "6.1-original-only",
-
-          stage:
-            "original_not_found",
-
-          original_found:
-            false,
-
-          verification,
-
-          error:
-            "Vídeo Original/HD não encontrado.",
-        },
-        {
-          status: 200,
-
-          headers: {
-            "Access-Control-Allow-Origin":
-              "*",
-
-            "Cache-Control":
-              "no-store",
-          },
-        }
-      );
-    }
-
-    /*
-     * 8.
-     * ORIGINAL / HD CONFIRMADO.
-     *
-     * Esta passa a ser a ÚNICA
-     * variação devolvida.
-     */
-    const originalUrl =
-      verification.finalUrl ||
-      candidateOriginal;
-
-    return Response.json(
-      {
-        ok: true,
-
-        version:
-          "6.1-original-only",
-
-        stage:
-          "original_found",
-
-        original_found:
-          true,
-
-        /*
-         * Mantemos media e mp4
-         * para facilitar integração
-         * com o Radar.
-         */
-        media:
-          originalUrl,
-
-        mp4:
-          originalUrl,
-
-        original_url:
-          originalUrl,
-
-        /*
-         * APENAS UMA VARIAÇÃO.
-         */
-        variants: [
-          {
-            type: "mp4",
-
-            source:
-              "original_base",
-
-            label:
-              "Original / HD",
-
-            url:
-              originalUrl,
-
-            verified:
-              true,
-
-            status:
-              verification.status,
-
-            content_type:
-              verification.contentType,
-
-            content_length:
-              verification.contentLength,
-          },
-        ],
-
-        verification,
-
-        diagnostics: {
-          next_data_found:
-            true,
-
-          original_candidate_created:
-            true,
-
-          original_verified:
-            true,
-
-          original_http_status:
-            verification.status,
-
-          original_content_type:
-            verification.contentType,
-        },
-      },
-      {
-        status: 200,
-
-        headers: {
-          "Access-Control-Allow-Origin":
-            "*",
-
-          "Cache-Control":
-            "no-store",
-        },
-      }
-    );
-  } catch (error) {
-    return Response.json(
-      {
+      return jsonResponse({
         ok: false,
 
         version:
           "6.1-original-only",
 
         stage:
-          "error",
+          "original_not_found",
 
-        error: String(
-          error?.message || error
-        ),
-      },
-      {
-        status: 200,
+        original_found:
+          false,
 
-        headers: {
-          "Access-Control-Allow-Origin":
-            "*",
+        verification,
 
-          "Cache-Control":
-            "no-store",
+        error:
+          "Vídeo Original/HD não encontrado.",
+      });
+    }
+
+    // ==================================================
+    // 8. ORIGINAL / HD CONFIRMADO
+    // ==================================================
+
+    const originalUrl =
+      verification.finalUrl ||
+      candidateOriginal;
+
+    return jsonResponse({
+      ok: true,
+
+      version:
+        "6.1-original-only",
+
+      stage:
+        "original_found",
+
+      original_found:
+        true,
+
+      /*
+       * Mantidos para integração
+       * com o Radar.
+       */
+
+      media:
+        originalUrl,
+
+      mp4:
+        originalUrl,
+
+      original_url:
+        originalUrl,
+
+      /*
+       * UMA ÚNICA VARIAÇÃO.
+       */
+
+      variants: [
+        {
+          type:
+            "mp4",
+
+          source:
+            "original_base",
+
+          label:
+            "Original / HD",
+
+          url:
+            originalUrl,
+
+          verified:
+            true,
+
+          status:
+            verification.status,
+
+          content_type:
+            verification.contentType,
+
+          content_length:
+            verification.contentLength,
         },
-      }
-    );
+      ],
+
+      verification,
+
+      diagnostics: {
+        next_data_found:
+          true,
+
+        original_candidate_created:
+          true,
+
+        original_verified:
+          true,
+
+        original_http_status:
+          verification.status,
+
+        original_content_type:
+          verification.contentType,
+      },
+    });
+
+  } catch (error) {
+
+    return jsonResponse({
+      ok: false,
+
+      version:
+        "6.1-original-only",
+
+      stage:
+        "error",
+
+      error:
+        String(
+          error?.message ||
+          error
+        ),
+    });
   }
 };
