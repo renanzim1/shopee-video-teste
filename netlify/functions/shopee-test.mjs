@@ -90,9 +90,12 @@ async function fetchTimeout(url, options = {}, timeout = 15000) {
 const browserHeaders = {
   "User-Agent":
     "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0 Mobile Safari/537.36",
+
   Accept:
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-  "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+
+  "Accept-Language":
+    "pt-BR,pt;q=0.9,en;q=0.8",
 };
 
 function extractNextData(html) {
@@ -117,15 +120,24 @@ function findMp4Fields(value, path = "root", results = []) {
   }
 
   if (typeof value === "string") {
-    if (/https?:\/\/[^"'\\\s]+\.mp4(?:\?[^"'\\\s]*)?/i.test(value)) {
+    if (
+      /https?:\/\/[^"'\\\s]+\.mp4(?:\?[^"'\\\s]*)?/i.test(
+        value
+      )
+    ) {
       const matches =
-        value.match(/https?:\/\/[^"'\\\s]+\.mp4(?:\?[^"'\\\s]*)?/gi) || [];
+        value.match(
+          /https?:\/\/[^"'\\\s]+\.mp4(?:\?[^"'\\\s]*)?/gi
+        ) || [];
 
       for (const url of matches) {
         results.push({
           path,
           key: path.split(".").pop(),
-          url: url.replace(/\\u0026/g, "&").replace(/\\\//g, "/"),
+
+          url: url
+            .replace(/\\u0026/g, "&")
+            .replace(/\\\//g, "/"),
         });
       }
     }
@@ -135,7 +147,11 @@ function findMp4Fields(value, path = "root", results = []) {
 
   if (Array.isArray(value)) {
     value.forEach((item, index) => {
-      findMp4Fields(item, `${path}[${index}]`, results);
+      findMp4Fields(
+        item,
+        `${path}[${index}]`,
+        results
+      );
     });
 
     return results;
@@ -143,39 +159,11 @@ function findMp4Fields(value, path = "root", results = []) {
 
   if (typeof value === "object") {
     for (const [key, item] of Object.entries(value)) {
-      findMp4Fields(item, `${path}.${key}`, results);
-    }
-  }
-
-  return results;
-}
-
-function findWatermarkFields(value, path = "root", results = []) {
-  if (!value || typeof value !== "object") {
-    return results;
-  }
-
-  if (Array.isArray(value)) {
-    value.forEach((item, index) => {
-      findWatermarkFields(item, `${path}[${index}]`, results);
-    });
-
-    return results;
-  }
-
-  for (const [key, item] of Object.entries(value)) {
-    const currentPath = `${path}.${key}`;
-
-    if (key.toLowerCase().includes("watermark")) {
-      results.push({
-        path: currentPath,
-        key,
-        value: item,
-      });
-    }
-
-    if (item && typeof item === "object") {
-      findWatermarkFields(item, currentPath, results);
+      findMp4Fields(
+        item,
+        `${path}.${key}`,
+        results
+      );
     }
   }
 
@@ -183,16 +171,15 @@ function findWatermarkFields(value, path = "root", results = []) {
 }
 
 /*
- * Exemplo confirmado:
+ * IMPORTANTE:
  *
- * watermark:
- * br-11110124-6kfkq-mciohuath7aqdc.16003551753240105.7278.mp4
+ * A Shopee fornece uma URL que contém o sufixo
+ * usado pela versão watermark.
  *
- * base:
- * br-11110124-6kfkq-mciohuath7aqdc.mp4
+ * Nós usamos essa informação SOMENTE internamente
+ * para descobrir o endereço base do vídeo original.
  *
- * A função abaixo NÃO faz brute force.
- * Ela apenas remove o sufixo numérico da variante watermark.
+ * A versão watermark NÃO é mais devolvida pela API.
  */
 function deriveBaseVideoUrl(watermarkUrl) {
   try {
@@ -205,12 +192,27 @@ function deriveBaseVideoUrl(watermarkUrl) {
       return null;
     }
 
-    const filename = url.pathname.split("/").pop();
+    const filename =
+      url.pathname.split("/").pop();
 
-    if (!filename || !filename.toLowerCase().endsWith(".mp4")) {
+    if (
+      !filename ||
+      !filename.toLowerCase().endsWith(".mp4")
+    ) {
       return null;
     }
 
+    /*
+     * Exemplo:
+     *
+     * Entrada interna:
+     *
+     * arquivo.16003551753240105.7278.mp4
+     *
+     * Original:
+     *
+     * arquivo.mp4
+     */
     const match = filename.match(
       /^(.+?)\.\d{6,}\.\d+\.mp4$/i
     );
@@ -219,14 +221,22 @@ function deriveBaseVideoUrl(watermarkUrl) {
       return null;
     }
 
-    const baseFilename = `${match[1]}.mp4`;
+    const baseFilename =
+      `${match[1]}.mp4`;
 
-    const parts = url.pathname.split("/");
-    parts[parts.length - 1] = baseFilename;
+    const parts =
+      url.pathname.split("/");
 
-    url.pathname = parts.join("/");
+    parts[parts.length - 1] =
+      baseFilename;
 
-    // Não carregamos parâmetros da variante watermark
+    url.pathname =
+      parts.join("/");
+
+    /*
+     * Não carregamos parâmetros da
+     * variante utilizada como referência.
+     */
     url.search = "";
     url.hash = "";
 
@@ -248,27 +258,45 @@ async function verifyVideo(url) {
 
   try {
     /*
-     * Range evita baixar o vídeo inteiro dentro da Function.
-     * Só precisamos confirmar que o CDN reconhece o arquivo.
+     * Não baixa o vídeo inteiro.
+     *
+     * Range serve somente para confirmar
+     * que o arquivo original existe no CDN.
      */
-    const response = await fetchTimeout(
-      url,
-      {
-        method: "GET",
-        headers: {
-          "User-Agent": browserHeaders["User-Agent"],
-          Accept: "video/mp4,video/*;q=0.9,*/*;q=0.8",
-          Range: "bytes=0-1",
-        },
-        redirect: "follow",
-      },
-      12000
-    );
+    const response =
+      await fetchTimeout(
+        url,
+        {
+          method: "GET",
 
-    const contentType = response.headers.get("content-type");
+          headers: {
+            "User-Agent":
+              browserHeaders["User-Agent"],
+
+            Accept:
+              "video/mp4,video/*;q=0.9,*/*;q=0.8",
+
+            Range:
+              "bytes=0-1",
+          },
+
+          redirect: "follow",
+        },
+        12000
+      );
+
+    const contentType =
+      response.headers.get(
+        "content-type"
+      );
+
     const contentLength =
-      response.headers.get("content-range") ||
-      response.headers.get("content-length");
+      response.headers.get(
+        "content-range"
+      ) ||
+      response.headers.get(
+        "content-length"
+      );
 
     const looksLikeVideo =
       response.ok ||
@@ -277,38 +305,66 @@ async function verifyVideo(url) {
     const typeIsValid =
       !contentType ||
       contentType.includes("video") ||
-      contentType.includes("octet-stream");
+      contentType.includes(
+        "octet-stream"
+      );
 
     return {
-      ok: looksLikeVideo && typeIsValid,
-      status: response.status,
+      ok:
+        looksLikeVideo &&
+        typeIsValid,
+
+      status:
+        response.status,
+
       contentType,
+
       contentLength,
-      finalUrl: response.url || url,
+
+      finalUrl:
+        response.url || url,
     };
   } catch (error) {
     return {
       ok: false,
+
       status: null,
+
       contentType: null,
+
       contentLength: null,
-      error: String(error?.message || error),
+
+      error: String(
+        error?.message || error
+      ),
     };
   }
 }
 
 export default async (request) => {
+  /*
+   * CORS
+   */
   if (request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
+
       headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Origin":
+          "*",
+
+        "Access-Control-Allow-Headers":
+          "Content-Type",
+
+        "Access-Control-Allow-Methods":
+          "POST, OPTIONS",
       },
     });
   }
 
+  /*
+   * Apenas POST
+   */
   if (request.method !== "POST") {
     return Response.json(
       {
@@ -317,15 +373,20 @@ export default async (request) => {
       },
       {
         status: 405,
+
         headers: {
-          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Origin":
+            "*",
         },
       }
     );
   }
 
   try {
-    const body = await request.json().catch(() => ({}));
+    const body =
+      await request
+        .json()
+        .catch(() => ({}));
 
     const input =
       body.url ||
@@ -333,212 +394,380 @@ export default async (request) => {
       body.videoUrl ||
       "";
 
-    const initialUrl = safeUrl(String(input).trim());
+    const initialUrl =
+      safeUrl(
+        String(input).trim()
+      );
 
     if (!initialUrl) {
       return Response.json(
         {
           ok: false,
-          error: "Link da Shopee inválido.",
+
+          error:
+            "Link da Shopee inválido.",
         },
         {
           status: 400,
+
           headers: {
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin":
+              "*",
           },
         }
       );
     }
 
     /*
-     * 1. Resolve link curto.
+     * 1.
+     * Resolve link curto da Shopee.
      */
-    const firstResponse = await fetchTimeout(
-      initialUrl.toString(),
-      {
-        headers: browserHeaders,
-        redirect: "follow",
-      },
-      15000
-    );
+    const firstResponse =
+      await fetchTimeout(
+        initialUrl.toString(),
+        {
+          headers:
+            browserHeaders,
 
-    let resolvedUrl = firstResponse.url || initialUrl.toString();
+          redirect:
+            "follow",
+        },
+        15000
+      );
+
+    let resolvedUrl =
+      firstResponse.url ||
+      initialUrl.toString();
 
     /*
-     * 2. Alguns links terminam em universal-link.
-     *    Extraímos o redir para share-video.
+     * 2.
+     * Resolve universal-link.
      */
-    const universalRedirect = getUniversalRedirect(resolvedUrl);
+    const universalRedirect =
+      getUniversalRedirect(
+        resolvedUrl
+      );
 
     if (universalRedirect) {
-      resolvedUrl = universalRedirect;
+      resolvedUrl =
+        universalRedirect;
     }
 
     /*
-     * 3. Carrega página pública do Shopee Video.
+     * 3.
+     * Carrega a página pública
+     * do Shopee Video.
      */
-    const pageResponse = await fetchTimeout(
-      resolvedUrl,
-      {
-        headers: browserHeaders,
-        redirect: "follow",
-      },
-      15000
-    );
+    const pageResponse =
+      await fetchTimeout(
+        resolvedUrl,
+        {
+          headers:
+            browserHeaders,
 
-    const finalPageUrl = pageResponse.url || resolvedUrl;
-    const html = await pageResponse.text();
+          redirect:
+            "follow",
+        },
+        15000
+      );
 
-    const nextData = extractNextData(html);
+    const finalPageUrl =
+      pageResponse.url ||
+      resolvedUrl;
+
+    const html =
+      await pageResponse.text();
+
+    /*
+     * 4.
+     * Obtém os dados Next.js.
+     */
+    const nextData =
+      extractNextData(html);
 
     if (!nextData) {
       return Response.json(
         {
           ok: false,
-          version: "6.0-original-test",
-          stage: "next_data_not_found",
-          final_url: finalPageUrl,
-          error: "__NEXT_DATA__ não encontrado.",
+
+          version:
+            "6.1-original-only",
+
+          stage:
+            "next_data_not_found",
+
+          final_url:
+            finalPageUrl,
+
+          error:
+            "__NEXT_DATA__ não encontrado.",
         },
         {
           status: 200,
+
           headers: {
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin":
+              "*",
+
+            "Cache-Control":
+              "no-store",
           },
         }
       );
     }
 
     /*
-     * 4. Encontra MP4s existentes no JSON.
+     * 5.
+     * Procura os MP4 existentes
+     * nos dados da página.
      */
-    const mp4Fields = findMp4Fields(nextData);
-    const watermarkFields = findWatermarkFields(nextData);
+    const mp4Fields =
+      findMp4Fields(nextData);
 
-    const watermarkMp4 =
-      mp4Fields.find((item) =>
-        item.key.toLowerCase().includes("watermark")
+    /*
+     * Precisamos localizar internamente
+     * a referência watermark para derivar
+     * o endereço base.
+     *
+     * ELA NÃO SERÁ DEVOLVIDA AO RADAR.
+     */
+    const referenceMp4 =
+      mp4Fields.find(
+        (item) =>
+          item.key
+            .toLowerCase()
+            .includes("watermark")
       ) ||
-      mp4Fields.find((item) =>
-        item.path.toLowerCase().includes("watermark")
+      mp4Fields.find(
+        (item) =>
+          item.path
+            .toLowerCase()
+            .includes("watermark")
       ) ||
       mp4Fields[0] ||
       null;
 
-    if (!watermarkMp4?.url) {
+    if (!referenceMp4?.url) {
       return Response.json(
         {
           ok: false,
-          version: "6.0-original-test",
-          stage: "watermark_not_found",
-          final_url: finalPageUrl,
-          mp4_fields: mp4Fields,
-          watermark_fields: watermarkFields,
-          error: "watermarkVideoUrl não encontrada.",
+
+          version:
+            "6.1-original-only",
+
+          stage:
+            "video_reference_not_found",
+
+          final_url:
+            finalPageUrl,
+
+          error:
+            "Não foi possível localizar a referência do vídeo.",
         },
         {
           status: 200,
+
           headers: {
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin":
+              "*",
+
+            "Cache-Control":
+              "no-store",
           },
         }
       );
     }
 
     /*
-     * 5. Deriva UMA única URL-base.
+     * 6.
+     * Cria UMA ÚNICA candidata:
+     *
+     * ORIGINAL / HD
      */
-    const candidateOriginal = deriveBaseVideoUrl(
-      watermarkMp4.url
-    );
+    const candidateOriginal =
+      deriveBaseVideoUrl(
+        referenceMp4.url
+      );
 
-    /*
-     * 6. Confirma no CDN sem baixar o arquivo inteiro.
-     */
-    const verification = await verifyVideo(
-      candidateOriginal
-    );
+    if (!candidateOriginal) {
+      return Response.json(
+        {
+          ok: false,
 
-    const originalFound =
-      Boolean(candidateOriginal) &&
-      verification.ok;
+          version:
+            "6.1-original-only",
 
-    const variants = [];
+          stage:
+            "original_candidate_not_created",
 
-    if (originalFound) {
-      variants.push({
-        type: "mp4",
-        source: "original_base",
-        label: "Original / HD",
-        url: verification.finalUrl || candidateOriginal,
-        verified: true,
-        status: verification.status,
-        content_type: verification.contentType,
-        content_length: verification.contentLength,
-      });
+          original_found:
+            false,
+
+          error:
+            "Não foi possível gerar a URL do vídeo original.",
+        },
+        {
+          status: 200,
+
+          headers: {
+            "Access-Control-Allow-Origin":
+              "*",
+
+            "Cache-Control":
+              "no-store",
+          },
+        }
+      );
     }
 
     /*
-     * Watermark continua disponível como fallback.
+     * 7.
+     * Confirma que o Original/HD
+     * realmente existe.
      */
-    variants.push({
-      type: "mp4",
-      source: "watermarkVideoUrl",
-      label: "Watermark / fallback",
-      url: watermarkMp4.url,
-      verified: true,
-    });
+    const verification =
+      await verifyVideo(
+        candidateOriginal
+      );
+
+    if (!verification.ok) {
+      /*
+       * IMPORTANTE:
+       *
+       * Não existe mais fallback.
+       *
+       * Se o Original/HD falhar,
+       * NÃO entregamos a versão
+       * com watermark.
+       */
+      return Response.json(
+        {
+          ok: false,
+
+          version:
+            "6.1-original-only",
+
+          stage:
+            "original_not_found",
+
+          original_found:
+            false,
+
+          verification,
+
+          error:
+            "Vídeo Original/HD não encontrado.",
+        },
+        {
+          status: 200,
+
+          headers: {
+            "Access-Control-Allow-Origin":
+              "*",
+
+            "Cache-Control":
+              "no-store",
+          },
+        }
+      );
+    }
+
+    /*
+     * 8.
+     * ORIGINAL / HD CONFIRMADO.
+     *
+     * Esta passa a ser a ÚNICA
+     * variação devolvida.
+     */
+    const originalUrl =
+      verification.finalUrl ||
+      candidateOriginal;
 
     return Response.json(
       {
         ok: true,
-        version: "6.0-original-test",
-        stage: originalFound
-          ? "original_found"
-          : "original_not_found",
 
-        original_found: originalFound,
+        version:
+          "6.1-original-only",
 
-        media: originalFound
-          ? verification.finalUrl || candidateOriginal
-          : watermarkMp4.url,
+        stage:
+          "original_found",
 
-        mp4: originalFound
-          ? verification.finalUrl || candidateOriginal
-          : watermarkMp4.url,
+        original_found:
+          true,
 
-        original_url: originalFound
-          ? verification.finalUrl || candidateOriginal
-          : null,
+        /*
+         * Mantemos media e mp4
+         * para facilitar integração
+         * com o Radar.
+         */
+        media:
+          originalUrl,
 
-        candidate_original_url: candidateOriginal,
+        mp4:
+          originalUrl,
 
-        watermark_url: watermarkMp4.url,
+        original_url:
+          originalUrl,
+
+        /*
+         * APENAS UMA VARIAÇÃO.
+         */
+        variants: [
+          {
+            type: "mp4",
+
+            source:
+              "original_base",
+
+            label:
+              "Original / HD",
+
+            url:
+              originalUrl,
+
+            verified:
+              true,
+
+            status:
+              verification.status,
+
+            content_type:
+              verification.contentType,
+
+            content_length:
+              verification.contentLength,
+          },
+        ],
 
         verification,
 
-        variants,
-
-        mp4_fields: mp4Fields,
-        watermark_fields: watermarkFields,
-
         diagnostics: {
-          next_data_found: true,
-          mp4_found: mp4Fields.length > 0,
+          next_data_found:
+            true,
+
           original_candidate_created:
-            Boolean(candidateOriginal),
-          original_verified: originalFound,
+            true,
+
+          original_verified:
+            true,
+
           original_http_status:
             verification.status,
+
           original_content_type:
             verification.contentType,
         },
       },
       {
         status: 200,
+
         headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Cache-Control": "no-store",
+          "Access-Control-Allow-Origin":
+            "*",
+
+          "Cache-Control":
+            "no-store",
         },
       }
     );
@@ -546,15 +775,26 @@ export default async (request) => {
     return Response.json(
       {
         ok: false,
-        version: "6.0-original-test",
-        stage: "error",
-        error: String(error?.message || error),
+
+        version:
+          "6.1-original-only",
+
+        stage:
+          "error",
+
+        error: String(
+          error?.message || error
+        ),
       },
       {
         status: 200,
+
         headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Cache-Control": "no-store",
+          "Access-Control-Allow-Origin":
+            "*",
+
+          "Cache-Control":
+            "no-store",
         },
       }
     );
