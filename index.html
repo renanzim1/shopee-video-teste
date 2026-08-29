@@ -1,41 +1,330 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Shopee Video Test</title>
-<style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0d0d0f;color:#fff;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}
-.box{width:100%;max-width:520px;background:#17171b;border:1px solid #29292f;border-radius:22px;padding:24px}
-h1{margin:0 0 8px;font-size:25px}.sub{color:#aaa;line-height:1.5;margin:0 0 22px}
-input{width:100%;padding:16px;border-radius:12px;border:1px solid #333;background:#0d0d0f;color:#fff;font-size:15px}
-button{width:100%;margin-top:12px;padding:16px;border:0;border-radius:12px;background:#ee4d2d;color:#fff;font-size:16px;font-weight:bold}
-button:disabled{opacity:.55}.linha{padding:10px 0;border-bottom:1px solid #28282e;font-size:14px}.ok{color:#50d890}.erro{color:#ff6767}.aviso{color:#ffc857}
-#status{margin-top:20px;display:none}pre{background:#09090b;border-radius:12px;padding:14px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-size:12px;color:#ccc}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Shopee Video Downloader</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 20px;
+      background: #0d0d0f;
+      color: #fff;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      margin: 30px auto;
+    }
+
+    .card {
+      padding: 22px;
+      background: #17171b;
+      border: 1px solid #29292f;
+      border-radius: 22px;
+    }
+
+    .logo {
+      margin-bottom: 8px;
+      font-size: 27px;
+      font-weight: 800;
+    }
+
+    .sub {
+      margin-bottom: 22px;
+      color: #aaa;
+      line-height: 1.5;
+    }
+
+    input {
+      width: 100%;
+      padding: 16px;
+      background: #0d0d0f;
+      color: #fff;
+      border: 1px solid #36363d;
+      border-radius: 13px;
+      outline: none;
+      font-size: 15px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 16px;
+      background: #ee4d2d;
+      color: #fff;
+      border: 0;
+      border-radius: 13px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .55;
+    }
+
+    #loading {
+      display: none;
+      margin-top: 20px;
+      color: #bbb;
+      text-align: center;
+    }
+
+    #resultado {
+      display: none;
+      margin-top: 22px;
+    }
+
+    .sucesso {
+      margin-bottom: 15px;
+      padding: 12px;
+      background: #11251b;
+      color: #6ee7a2;
+      border: 1px solid #245d3c;
+      border-radius: 12px;
+      font-weight: bold;
+    }
+
+    .erro {
+      margin-bottom: 15px;
+      padding: 12px;
+      background: #2a1215;
+      color: #ff7a85;
+      border: 1px solid #6b2930;
+      border-radius: 12px;
+    }
+
+    video {
+      display: block;
+      width: 100%;
+      max-height: 600px;
+      margin-top: 5px;
+      background: #000;
+      border-radius: 16px;
+    }
+
+    .download {
+      display: block;
+      width: 100%;
+      margin-top: 14px;
+      padding: 16px;
+      background: #ee4d2d;
+      color: #fff;
+      border-radius: 13px;
+      text-align: center;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .novo {
+      background: #29292f;
+    }
+
+    .info {
+      margin-top: 16px;
+      color: #777;
+      font-size: 12px;
+      line-height: 1.5;
+      text-align: center;
+    }
+  </style>
 </head>
-<body><div class="box">
-<h1>🧪 Shopee Video Test</h1>
-<p class="sub">Teste isolado para descobrir como o link do Shopee Video é resolvido.</p>
-<input id="url" type="url" value="https://br.shp.ee/asp0n4v6?fromSource=copy_link&smtt=0.0.9" placeholder="Cole o link do Shopee Video">
-<button id="botao" onclick="testar()">TESTAR VÍDEO</button>
-<div id="status"></div>
-</div>
-<script>
-const esc=s=>String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
-const linha=(n,v)=>`<div class="linha ${v===true?'ok':v===false?'erro':'aviso'}">${v===true?'✅':v===false?'❌':'⚠️'} ${n}</div>`;
-async function testar(){
- const url=document.getElementById("url").value.trim(),b=document.getElementById("botao"),s=document.getElementById("status");
- if(!url){alert("Cole um link.");return}
- b.disabled=true;b.textContent="TESTANDO...";s.style.display="block";s.innerHTML='<div class="linha">🔎 Iniciando teste...</div>';
- try{
-  const r=await fetch("/.netlify/functions/shopee-test",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
-  const d=await r.json();
-  let h=linha("Link recebido",d.input_ok)+linha("Redirecionamento",d.redirect_found)+linha("Página Shopee Video",d.share_video_found)+linha("Página carregada",d.page_loaded)+linha("MP4 encontrado",d.mp4_found)+linha("M3U8 encontrado",d.m3u8_found);
-  if(d.final_url)h+=`<div class="linha"><b>URL final</b><br><br>${esc(d.final_url)}</div>`;
-  if(d.media?.length)h+=`<div class="linha ok"><b>🎉 MÍDIA ENCONTRADA</b></div>`+d.media.map(x=>`<div class="linha">${esc(x)}</div>`).join("");
-  h+=`<pre>${esc(JSON.stringify(d,null,2))}</pre>`;s.innerHTML=h;
- }catch(e){s.innerHTML=`<div class="linha erro">❌ Erro ao chamar a Function</div><pre>${esc(e)}</pre>`}
- finally{b.disabled=false;b.textContent="TESTAR NOVAMENTE"}
-}
-</script></body></html>
+
+<body>
+
+  <div class="container">
+    <div class="card">
+
+      <div class="logo">
+        🛍️ Shopee Video Downloader
+      </div>
+
+      <div class="sub">
+        Cole o link compartilhado do Shopee Video para localizar o vídeo.
+      </div>
+
+      <input
+        id="url"
+        type="url"
+        placeholder="https://br.shp.ee/..."
+      >
+
+      <button
+        id="buscar"
+        onclick="buscarVideo()"
+      >
+        LOCALIZAR VÍDEO
+      </button>
+
+      <div id="loading">
+        🔎 Procurando vídeo...
+      </div>
+
+      <div id="resultado"></div>
+
+    </div>
+  </div>
+
+  <script>
+    const input = document.getElementById("url");
+    const botao = document.getElementById("buscar");
+    const loading = document.getElementById("loading");
+    const resultado = document.getElementById("resultado");
+
+    async function buscarVideo() {
+      const url = input.value.trim();
+
+      if (!url) {
+        alert("Cole o link do Shopee Video.");
+        return;
+      }
+
+      botao.disabled = true;
+      loading.style.display = "block";
+      resultado.style.display = "none";
+      resultado.innerHTML = "";
+
+      try {
+        const response = await fetch(
+          "/.netlify/functions/shopee-test",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ url })
+          }
+        );
+
+        const data = await response.json();
+
+        if (
+          !data.ok ||
+          !Array.isArray(data.media) ||
+          data.media.length === 0
+        ) {
+          resultado.innerHTML = `
+            <div class="erro">
+              ❌ Não consegui localizar o arquivo de vídeo.
+            </div>
+
+            <button
+              class="novo"
+              onclick="novoTeste()"
+            >
+              TESTAR OUTRO LINK
+            </button>
+          `;
+
+          return;
+        }
+
+        const mp4 =
+          (Array.isArray(data.mp4) && data.mp4[0]) ||
+          data.media.find(item =>
+            String(item).toLowerCase().includes(".mp4")
+          );
+
+        if (!mp4) {
+          resultado.innerHTML = `
+            <div class="erro">
+              ❌ A página foi localizada, mas nenhum MP4 foi encontrado.
+            </div>
+
+            <button
+              class="novo"
+              onclick="novoTeste()"
+            >
+              TESTAR OUTRO LINK
+            </button>
+          `;
+
+          return;
+        }
+
+        const safeMp4 = escapeAttr(mp4);
+
+        resultado.innerHTML = `
+          <div class="sucesso">
+            ✅ Vídeo encontrado!
+          </div>
+
+          <video
+            controls
+            playsinline
+            preload="metadata"
+            src="${safeMp4}"
+          ></video>
+
+          <a
+            class="download"
+            href="${safeMp4}"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            ⬇️ BAIXAR MP4
+          </a>
+
+          <button
+            class="novo"
+            onclick="novoTeste()"
+          >
+            TESTAR OUTRO LINK
+          </button>
+
+          <div class="info">
+            Arquivo MP4 localizado a partir do link compartilhado.
+          </div>
+        `;
+
+      } catch (error) {
+        console.error(error);
+
+        resultado.innerHTML = `
+          <div class="erro">
+            ❌ Ocorreu um erro ao localizar o vídeo.
+          </div>
+
+          <button
+            class="novo"
+            onclick="novoTeste()"
+          >
+            TENTAR NOVAMENTE
+          </button>
+        `;
+      } finally {
+        loading.style.display = "none";
+        resultado.style.display = "block";
+        botao.disabled = false;
+      }
+    }
+
+    function novoTeste() {
+      input.value = "";
+      resultado.style.display = "none";
+      resultado.innerHTML = "";
+      input.focus();
+    }
+
+    function escapeAttr(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+  </script>
+
+</body>
+</html>
