@@ -2,11 +2,11 @@ const ALLOWED_HOSTS = [
   "br.shp.ee",
   "shopee.com.br",
   "www.shopee.com.br",
-  "sv.shopee.com.br"
+  "sv.shopee.com.br",
 ];
 
-function allowedHost(hostname) {
-  const host = String(hostname || "").toLowerCase();
+function isAllowedHost(hostname) {
+  const host = hostname.toLowerCase();
 
   return (
     ALLOWED_HOSTS.includes(host) ||
@@ -19,8 +19,13 @@ function safeUrl(value) {
   try {
     const url = new URL(value);
 
-    if (url.protocol !== "https:") return null;
-    if (!allowedHost(url.hostname)) return null;
+    if (!["http:", "https:"].includes(url.protocol)) {
+      return null;
+    }
+
+    if (!isAllowedHost(url.hostname)) {
+      return null;
+    }
 
     return url;
   } catch {
@@ -29,101 +34,75 @@ function safeUrl(value) {
 }
 
 function decodeValue(value) {
-  return String(value || "")
-    .replaceAll("\\u0026", "&")
-    .replaceAll("\\u003d", "=")
-    .replaceAll("\\u002F", "/")
-    .replaceAll("\\u002f", "/")
-    .replaceAll("\\/", "/")
-    .replaceAll("&amp;", "&");
+  let result = value;
+
+  for (let i = 0; i < 3; i++) {
+    try {
+      const decoded = decodeURIComponent(result);
+
+      if (decoded === result) break;
+
+      result = decoded;
+    } catch {
+      break;
+    }
+  }
+
+  return result;
 }
 
-function getUniversalRedirect(value) {
+function getUniversalRedirect(url) {
   try {
-    const url = new URL(value);
+    const parsed = new URL(url);
 
-    if (!url.pathname.includes("/universal-link")) {
-      return null;
-    }
-
-    const redir = url.searchParams.get("redir");
+    const redir =
+      parsed.searchParams.get("redir") ||
+      parsed.searchParams.get("redirect") ||
+      parsed.searchParams.get("url");
 
     if (!redir) return null;
 
-    let decoded = redir;
+    const decoded = decodeValue(redir);
 
-    for (let i = 0; i < 3; i++) {
-      try {
-        const next = decodeURIComponent(decoded);
-
-        if (next === decoded) break;
-
-        decoded = next;
-      } catch {
-        break;
-      }
-    }
-
-    const target = new URL(decoded);
-
-    if (
-      target.protocol !== "https:" ||
-      !allowedHost(target.hostname)
-    ) {
-      return null;
-    }
-
-    return target.toString();
+    return safeUrl(decoded)?.toString() || null;
   } catch {
     return null;
   }
 }
 
-async function fetchTimeout(
-  url,
-  options = {},
-  timeout = 12000
-) {
+async function fetchTimeout(url, options = {}, timeout = 15000) {
   const controller = new AbortController();
 
-  const timer = setTimeout(
-    () => controller.abort(),
-    timeout
-  );
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, timeout);
 
   try {
     return await fetch(url, {
       ...options,
-      signal: controller.signal
+      signal: controller.signal,
     });
   } finally {
     clearTimeout(timer);
   }
 }
 
-const HEADERS = {
+const browserHeaders = {
   "User-Agent":
-    "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
-
-  "Accept":
-    "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-
-  "Accept-Language":
-    "pt-BR,pt;q=0.9,en-US;q=0.7",
-
-  "Cache-Control":
-    "no-cache",
-
-  "Pragma":
-    "no-cache"
+    "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0 Mobile Safari/537.36",
+  Accept:
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+  "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
 };
 
 function extractNextData(html) {
   const match = html.match(
-    /<script[^>]+id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i
+    /<script[^>]*id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i
   );
 
-  if (!match?.[1]) return null;
+  if (!match?.[1]) {
+    return null;
+  }
 
   try {
     return JSON.parse(match[1]);
@@ -132,630 +111,451 @@ function extractNextData(html) {
   }
 }
 
-/*
- * Procura recursivamente objetos que tenham
- * campos relacionados a vídeo.
- */
-function findVideoObjects(value) {
-  const results = [];
-  const visited = new WeakSet();
-
-  function walk(node, path = "root") {
-    if (
-      !node ||
-      typeof node !== "object"
-    ) {
-      return;
-    }
-
-    if (visited.has(node)) return;
-    visited.add(node);
-
-    if (Array.isArray(node)) {
-      node.forEach((item, index) => {
-        walk(
-          item,
-          `${path}[${index}]`
-        );
-      });
-
-      return;
-    }
-
-    const keys = Object.keys(node);
-
-    const interestingKeys =
-      keys.filter(key => {
-        const lower =
-          key.toLowerCase();
-
-        return (
-          lower.includes("video") ||
-          lower.includes("watermark") ||
-          lower.includes("media") ||
-          lower.includes("play") ||
-          lower.includes("download") ||
-          lower.includes("duration")
-        );
-      });
-
-    if (interestingKeys.length) {
-      const values = {};
-
-      for (const key of keys) {
-        const item = node[key];
-
-        /*
-         * Retorna somente valores simples.
-         * Assim o JSON não fica gigantesco.
-         */
-        if (
-          item === null ||
-          typeof item === "string" ||
-          typeof item === "number" ||
-          typeof item === "boolean"
-        ) {
-          values[key] = item;
-        }
-      }
-
-      results.push({
-        path,
-        interesting_keys:
-          interestingKeys,
-        values
-      });
-    }
-
-    for (const [key, child] of Object.entries(node)) {
-      if (
-        child &&
-        typeof child === "object"
-      ) {
-        walk(
-          child,
-          `${path}.${key}`
-        );
-      }
-    }
+function findMp4Fields(value, path = "root", results = []) {
+  if (value === null || value === undefined) {
+    return results;
   }
 
-  walk(value);
+  if (typeof value === "string") {
+    if (/https?:\/\/[^"'\\\s]+\.mp4(?:\?[^"'\\\s]*)?/i.test(value)) {
+      const matches =
+        value.match(/https?:\/\/[^"'\\\s]+\.mp4(?:\?[^"'\\\s]*)?/gi) || [];
 
-  return results.slice(0, 100);
-}
-
-/*
- * Procura especificamente por campos
- * cujo nome contenha "watermark".
- */
-function findWatermarkFields(value) {
-  const results = [];
-  const visited = new WeakSet();
-
-  function walk(node, path = "root") {
-    if (
-      !node ||
-      typeof node !== "object"
-    ) {
-      return;
-    }
-
-    if (visited.has(node)) return;
-    visited.add(node);
-
-    if (Array.isArray(node)) {
-      node.forEach((item, index) => {
-        walk(
-          item,
-          `${path}[${index}]`
-        );
-      });
-
-      return;
-    }
-
-    for (const [key, child] of Object.entries(node)) {
-      const currentPath =
-        `${path}.${key}`;
-
-      if (
-        key
-          .toLowerCase()
-          .includes("watermark")
-      ) {
+      for (const url of matches) {
         results.push({
-          path: currentPath,
-          key,
-          value:
-            typeof child === "object"
-              ? "[object]"
-              : child
+          path,
+          key: path.split(".").pop(),
+          url: url.replace(/\\u0026/g, "&").replace(/\\\//g, "/"),
         });
       }
+    }
 
-      if (
-        child &&
-        typeof child === "object"
-      ) {
-        walk(
-          child,
-          currentPath
-        );
-      }
+    return results;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      findMp4Fields(item, `${path}[${index}]`, results);
+    });
+
+    return results;
+  }
+
+  if (typeof value === "object") {
+    for (const [key, item] of Object.entries(value)) {
+      findMp4Fields(item, `${path}.${key}`, results);
     }
   }
 
-  walk(value);
+  return results;
+}
 
-  return results.slice(0, 50);
+function findWatermarkFields(value, path = "root", results = []) {
+  if (!value || typeof value !== "object") {
+    return results;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      findWatermarkFields(item, `${path}[${index}]`, results);
+    });
+
+    return results;
+  }
+
+  for (const [key, item] of Object.entries(value)) {
+    const currentPath = `${path}.${key}`;
+
+    if (key.toLowerCase().includes("watermark")) {
+      results.push({
+        path: currentPath,
+        key,
+        value: item,
+      });
+    }
+
+    if (item && typeof item === "object") {
+      findWatermarkFields(item, currentPath, results);
+    }
+  }
+
+  return results;
 }
 
 /*
- * Encontra URLs de MP4 dentro do NEXT_DATA
- * e registra o caminho de onde vieram.
+ * Exemplo confirmado:
+ *
+ * watermark:
+ * br-11110124-6kfkq-mciohuath7aqdc.16003551753240105.7278.mp4
+ *
+ * base:
+ * br-11110124-6kfkq-mciohuath7aqdc.mp4
+ *
+ * A função abaixo NÃO faz brute force.
+ * Ela apenas remove o sufixo numérico da variante watermark.
  */
-function findMp4Fields(value) {
-  const results = [];
-  const visited = new WeakSet();
+function deriveBaseVideoUrl(watermarkUrl) {
+  try {
+    const url = new URL(watermarkUrl);
 
-  function walk(node, path = "root") {
     if (
-      !node ||
-      typeof node !== "object"
+      !url.hostname.endsWith(".vod.susercontent.com") &&
+      url.hostname !== "vod.susercontent.com"
     ) {
-      return;
+      return null;
     }
 
-    if (visited.has(node)) return;
-    visited.add(node);
+    const filename = url.pathname.split("/").pop();
 
-    if (Array.isArray(node)) {
-      node.forEach((item, index) => {
-        walk(
-          item,
-          `${path}[${index}]`
-        );
-      });
-
-      return;
+    if (!filename || !filename.toLowerCase().endsWith(".mp4")) {
+      return null;
     }
 
-    for (const [key, child] of Object.entries(node)) {
-      const currentPath =
-        `${path}.${key}`;
+    const match = filename.match(
+      /^(.+?)\.\d{6,}\.\d+\.mp4$/i
+    );
 
-      if (
-        typeof child === "string"
-      ) {
-        const decoded =
-          decodeValue(child);
-
-        if (
-          decoded
-            .toLowerCase()
-            .includes(".mp4")
-        ) {
-          results.push({
-            path: currentPath,
-            key,
-            url: decoded
-          });
-        }
-      }
-
-      if (
-        child &&
-        typeof child === "object"
-      ) {
-        walk(
-          child,
-          currentPath
-        );
-      }
+    if (!match?.[1]) {
+      return null;
     }
+
+    const baseFilename = `${match[1]}.mp4`;
+
+    const parts = url.pathname.split("/");
+    parts[parts.length - 1] = baseFilename;
+
+    url.pathname = parts.join("/");
+
+    // Não carregamos parâmetros da variante watermark
+    url.search = "";
+    url.hash = "";
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+async function verifyVideo(url) {
+  if (!url) {
+    return {
+      ok: false,
+      status: null,
+      contentType: null,
+      contentLength: null,
+    };
   }
 
-  walk(value);
+  try {
+    /*
+     * Range evita baixar o vídeo inteiro dentro da Function.
+     * Só precisamos confirmar que o CDN reconhece o arquivo.
+     */
+    const response = await fetchTimeout(
+      url,
+      {
+        method: "GET",
+        headers: {
+          "User-Agent": browserHeaders["User-Agent"],
+          Accept: "video/mp4,video/*;q=0.9,*/*;q=0.8",
+          Range: "bytes=0-1",
+        },
+        redirect: "follow",
+      },
+      12000
+    );
 
-  return results.slice(0, 50);
+    const contentType = response.headers.get("content-type");
+    const contentLength =
+      response.headers.get("content-range") ||
+      response.headers.get("content-length");
+
+    const looksLikeVideo =
+      response.ok ||
+      response.status === 206;
+
+    const typeIsValid =
+      !contentType ||
+      contentType.includes("video") ||
+      contentType.includes("octet-stream");
+
+    return {
+      ok: looksLikeVideo && typeIsValid,
+      status: response.status,
+      contentType,
+      contentLength,
+      finalUrl: response.url || url,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: null,
+      contentType: null,
+      contentLength: null,
+      error: String(error?.message || error),
+    };
+  }
 }
 
 export default async (request) => {
-  const cors = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers":
-      "Content-Type",
-    "Access-Control-Allow-Methods":
-      "POST, OPTIONS",
-    "Content-Type":
-      "application/json; charset=utf-8"
-  };
-
   if (request.method === "OPTIONS") {
-    return new Response("", {
+    return new Response(null, {
       status: 204,
-      headers: cors
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+      },
     });
   }
 
   if (request.method !== "POST") {
-    return new Response(
-      JSON.stringify({
+    return Response.json(
+      {
         ok: false,
-        error: "Use POST."
-      }),
+        error: "Use POST.",
+      },
       {
         status: 405,
-        headers: cors
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+        },
       }
     );
   }
 
   try {
-    const body =
-      await request.json();
+    const body = await request.json().catch(() => ({}));
 
     const input =
-      safeUrl(body?.url);
+      body.url ||
+      body.link ||
+      body.videoUrl ||
+      "";
 
-    if (!input) {
-      return new Response(
-        JSON.stringify({
+    const initialUrl = safeUrl(String(input).trim());
+
+    if (!initialUrl) {
+      return Response.json(
+        {
           ok: false,
-          error:
-            "Link Shopee inválido."
-        }),
+          error: "Link da Shopee inválido.",
+        },
         {
           status: 400,
-          headers: cors
-        }
-      );
-    }
-
-    const inputUrl =
-      input.toString();
-
-    let current =
-      inputUrl;
-
-    let response = null;
-
-    const steps = [];
-
-    /*
-     * Resolve o link curto.
-     */
-    for (let i = 0; i < 8; i++) {
-      const universal =
-        getUniversalRedirect(
-          current
-        );
-
-      if (universal) {
-        steps.push({
-          type:
-            "universal_redir",
-          from: current,
-          to: universal
-        });
-
-        current =
-          universal;
-
-        response =
-          null;
-
-        continue;
-      }
-
-      const checked =
-        safeUrl(current);
-
-      if (!checked) {
-        throw new Error(
-          "Redirecionamento bloqueado."
-        );
-      }
-
-      response =
-        await fetchTimeout(
-          current,
-          {
-            method: "GET",
-            headers: HEADERS,
-            redirect: "manual"
-          }
-        );
-
-      if (
-        response.status >= 300 &&
-        response.status < 400
-      ) {
-        const location =
-          response.headers.get(
-            "location"
-          );
-
-        if (!location) break;
-
-        const next =
-          new URL(
-            location,
-            current
-          );
-
-        if (
-          next.protocol !== "https:" ||
-          !allowedHost(
-            next.hostname
-          )
-        ) {
-          throw new Error(
-            "Redirecionamento externo bloqueado."
-          );
-        }
-
-        steps.push({
-          type:
-            "http_redirect",
-          status:
-            response.status,
-          from:
-            current,
-          to:
-            next.toString()
-        });
-
-        current =
-          next.toString();
-
-        response =
-          null;
-
-        continue;
-      }
-
-      break;
-    }
-
-    /*
-     * Alguns links terminam numa universal-link.
-     */
-    const finalUniversal =
-      getUniversalRedirect(
-        current
-      );
-
-    if (finalUniversal) {
-      steps.push({
-        type:
-          "universal_redir",
-        from:
-          current,
-        to:
-          finalUniversal
-      });
-
-      current =
-        finalUniversal;
-
-      response =
-        null;
-    }
-
-    /*
-     * Carrega a página final.
-     */
-    if (!response) {
-      response =
-        await fetchTimeout(
-          current,
-          {
-            method: "GET",
-            headers: HEADERS,
-            redirect: "follow"
-          }
-        );
-    }
-
-    const html =
-      await response.text();
-
-    /*
-     * NEXT_DATA
-     */
-    const nextData =
-      extractNextData(html);
-
-    if (!nextData) {
-      return new Response(
-        JSON.stringify(
-          {
-            ok: true,
-            version:
-              "5.0-media-info",
-
-            stage:
-              "next_data_not_found",
-
-            input_url:
-              inputUrl,
-
-            final_url:
-              current,
-
-            next_data_found:
-              false,
-
-            message:
-              "__NEXT_DATA__ não foi encontrado."
+          headers: {
+            "Access-Control-Allow-Origin": "*",
           },
-          null,
-          2
-        ),
-        {
-          status: 200,
-          headers: cors
         }
       );
     }
 
     /*
-     * Investigação focada.
+     * 1. Resolve link curto.
      */
-    const videoObjects =
-      findVideoObjects(
-        nextData
-      );
-
-    const watermarkFields =
-      findWatermarkFields(
-        nextData
-      );
-
-    const mp4Fields =
-      findMp4Fields(
-        nextData
-      );
-
-    /*
-     * Mantém compatibilidade com
-     * nosso index.html atual.
-     */
-    const mp4 =
-      [
-        ...new Set(
-          mp4Fields
-            .map(item => item.url)
-            .filter(Boolean)
-        )
-      ];
-
-    const variants =
-      mp4.map((url, index) => {
-        const match =
-          mp4Fields.find(
-            item =>
-              item.url === url
-          );
-
-        return {
-          url,
-          type: "mp4",
-          source:
-            match?.key ||
-            `NEXT_DATA_${index + 1}`
-        };
-      });
-
-    return new Response(
-      JSON.stringify(
-        {
-          ok: true,
-
-          version:
-            "5.0-media-info",
-
-          stage:
-            "media_info_inspected",
-
-          input_url:
-            inputUrl,
-
-          final_url:
-            current,
-
-          next_data_found:
-            true,
-
-          video_object_count:
-            videoObjects.length,
-
-          watermark_field_count:
-            watermarkFields.length,
-
-          mp4_field_count:
-            mp4Fields.length,
-
-          video_objects:
-            videoObjects,
-
-          watermark_fields:
-            watermarkFields,
-
-          mp4_fields:
-            mp4Fields,
-
-          variant_count:
-            variants.length,
-
-          variants,
-
-          mp4,
-
-          m3u8: [],
-
-          media:
-            mp4,
-
-          mp4_found:
-            mp4.length > 0,
-
-          m3u8_found:
-            false,
-
-          diagnostics: {
-            next_data_found:
-              true,
-
-            total_scripts:
-              0,
-
-            inspected_scripts:
-              0,
-
-            video_objects:
-              videoObjects.length,
-
-            watermark_fields:
-              watermarkFields.length,
-
-            mp4_fields:
-              mp4Fields.length
-          },
-
-          steps
-        },
-        null,
-        2
-      ),
+    const firstResponse = await fetchTimeout(
+      initialUrl.toString(),
       {
-        status: 200,
-        headers: cors
-      }
+        headers: browserHeaders,
+        redirect: "follow",
+      },
+      15000
     );
 
-  } catch (error) {
-    return new Response(
-      JSON.stringify(
+    let resolvedUrl = firstResponse.url || initialUrl.toString();
+
+    /*
+     * 2. Alguns links terminam em universal-link.
+     *    Extraímos o redir para share-video.
+     */
+    const universalRedirect = getUniversalRedirect(resolvedUrl);
+
+    if (universalRedirect) {
+      resolvedUrl = universalRedirect;
+    }
+
+    /*
+     * 3. Carrega página pública do Shopee Video.
+     */
+    const pageResponse = await fetchTimeout(
+      resolvedUrl,
+      {
+        headers: browserHeaders,
+        redirect: "follow",
+      },
+      15000
+    );
+
+    const finalPageUrl = pageResponse.url || resolvedUrl;
+    const html = await pageResponse.text();
+
+    const nextData = extractNextData(html);
+
+    if (!nextData) {
+      return Response.json(
         {
           ok: false,
-
-          version:
-            "5.0-media-info",
-
-          error:
-            error instanceof Error
-              ? error.message
-              : String(error)
+          version: "6.0-original-test",
+          stage: "next_data_not_found",
+          final_url: finalPageUrl,
+          error: "__NEXT_DATA__ não encontrado.",
         },
-        null,
-        2
-      ),
+        {
+          status: 200,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
+
+    /*
+     * 4. Encontra MP4s existentes no JSON.
+     */
+    const mp4Fields = findMp4Fields(nextData);
+    const watermarkFields = findWatermarkFields(nextData);
+
+    const watermarkMp4 =
+      mp4Fields.find((item) =>
+        item.key.toLowerCase().includes("watermark")
+      ) ||
+      mp4Fields.find((item) =>
+        item.path.toLowerCase().includes("watermark")
+      ) ||
+      mp4Fields[0] ||
+      null;
+
+    if (!watermarkMp4?.url) {
+      return Response.json(
+        {
+          ok: false,
+          version: "6.0-original-test",
+          stage: "watermark_not_found",
+          final_url: finalPageUrl,
+          mp4_fields: mp4Fields,
+          watermark_fields: watermarkFields,
+          error: "watermarkVideoUrl não encontrada.",
+        },
+        {
+          status: 200,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
+
+    /*
+     * 5. Deriva UMA única URL-base.
+     */
+    const candidateOriginal = deriveBaseVideoUrl(
+      watermarkMp4.url
+    );
+
+    /*
+     * 6. Confirma no CDN sem baixar o arquivo inteiro.
+     */
+    const verification = await verifyVideo(
+      candidateOriginal
+    );
+
+    const originalFound =
+      Boolean(candidateOriginal) &&
+      verification.ok;
+
+    const variants = [];
+
+    if (originalFound) {
+      variants.push({
+        type: "mp4",
+        source: "original_base",
+        label: "Original / HD",
+        url: verification.finalUrl || candidateOriginal,
+        verified: true,
+        status: verification.status,
+        content_type: verification.contentType,
+        content_length: verification.contentLength,
+      });
+    }
+
+    /*
+     * Watermark continua disponível como fallback.
+     */
+    variants.push({
+      type: "mp4",
+      source: "watermarkVideoUrl",
+      label: "Watermark / fallback",
+      url: watermarkMp4.url,
+      verified: true,
+    });
+
+    return Response.json(
       {
-        status: 500,
-        headers: cors
+        ok: true,
+        version: "6.0-original-test",
+        stage: originalFound
+          ? "original_found"
+          : "original_not_found",
+
+        original_found: originalFound,
+
+        media: originalFound
+          ? verification.finalUrl || candidateOriginal
+          : watermarkMp4.url,
+
+        mp4: originalFound
+          ? verification.finalUrl || candidateOriginal
+          : watermarkMp4.url,
+
+        original_url: originalFound
+          ? verification.finalUrl || candidateOriginal
+          : null,
+
+        candidate_original_url: candidateOriginal,
+
+        watermark_url: watermarkMp4.url,
+
+        verification,
+
+        variants,
+
+        mp4_fields: mp4Fields,
+        watermark_fields: watermarkFields,
+
+        diagnostics: {
+          next_data_found: true,
+          mp4_found: mp4Fields.length > 0,
+          original_candidate_created:
+            Boolean(candidateOriginal),
+          original_verified: originalFound,
+          original_http_status:
+            verification.status,
+          original_content_type:
+            verification.contentType,
+        },
+      },
+      {
+        status: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Cache-Control": "no-store",
+        },
+      }
+    );
+  } catch (error) {
+    return Response.json(
+      {
+        ok: false,
+        version: "6.0-original-test",
+        stage: "error",
+        error: String(error?.message || error),
+      },
+      {
+        status: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Cache-Control": "no-store",
+        },
       }
     );
   }
