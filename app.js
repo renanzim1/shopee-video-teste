@@ -2497,18 +2497,49 @@ async function limparMetadadosVideo() {
 // ======================================================
 
 function prepararDownloadLimpo(event) {
+  event?.preventDefault();
+
   if (
     !videoLimpoBlob ||
     !videoLimpoObjectUrl
   ) {
-    event?.preventDefault();
-
     mostrarStatusVideo(
       "Primeiro limpe os metadados do vídeo.",
       "error"
     );
 
     return;
+  }
+
+  try {
+    const nomeArquivo = gerarNomeVideo();
+
+    const link = document.createElement("a");
+
+    link.href = videoLimpoObjectUrl;
+    link.download = nomeArquivo;
+    link.style.display = "none";
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    mostrarStatusVideo(
+      "⬇️ Download iniciado.",
+      "success"
+    );
+  } catch (erro) {
+    console.error(
+      "Erro ao iniciar download:",
+      erro
+    );
+
+    mostrarStatusVideo(
+      "Não foi possível iniciar o download.",
+      "error"
+    );
   }
 }
 
