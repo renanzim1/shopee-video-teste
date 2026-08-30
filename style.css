@@ -2714,7 +2714,7 @@ strong {
 @media (min-width: 900px) {
 
   body {
-    padding-bottom: 40px;
+    padding-bottom: 120px;
   }
 
   .hero {
@@ -2729,8 +2729,77 @@ strong {
   }
 
   .bottom-nav {
-    display: none;
-  }
+  display: block;
+
+  width: calc(100% - 40px);
+  max-width: 900px;
+
+  left: 50%;
+  bottom: 18px;
+
+  transform: translateX(-50%);
+
+  border: 1px solid var(--border);
+  border-radius: 18px;
+
+  overflow: hidden;
+
+  box-shadow:
+    0 14px 40px
+    rgba(0, 0, 0, 0.35);
+}
+
+.bottom-nav-scroll {
+  width: 100%;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(5, minmax(0, 1fr));
+
+  overflow: hidden;
+
+  padding: 8px;
+}
+
+.bottom-item {
+  width: 100%;
+  min-width: 0;
+
+  flex: none;
+
+  min-height: 58px;
+
+  border-radius: 12px;
+
+  font-size: 11px;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.bottom-item span {
+  font-size: 20px;
+}
+
+.bottom-item:hover {
+  color: #fff;
+
+  background:
+    rgba(255, 255, 255, 0.04);
+}
+
+.bottom-item.active {
+  color: var(--orange);
+
+  background:
+    rgba(255, 90, 31, 0.08);
+}
+
+.bottom-download-item {
+  padding-right: 3px;
+}
 
   .video-downloader-hero {
     padding-top: 45px;
