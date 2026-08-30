@@ -740,54 +740,23 @@
     <section class="stats">
 
       <div class="stat">
-
-        <small>
-          USUÁRIOS
-        </small>
-
-        <strong id="statTotal">
-          0
-        </strong>
-
+        <small>USUÁRIOS</small>
+        <strong id="statTotal">0</strong>
       </div>
 
-
       <div class="stat">
-
-        <small>
-          ATIVOS
-        </small>
-
-        <strong id="statActive">
-          0
-        </strong>
-
+        <small>ATIVOS</small>
+        <strong id="statActive">0</strong>
       </div>
 
-
       <div class="stat">
-
-        <small>
-          VENCIDOS
-        </small>
-
-        <strong id="statExpired">
-          0
-        </strong>
-
+        <small>VENCIDOS</small>
+        <strong id="statExpired">0</strong>
       </div>
 
-
       <div class="stat">
-
-        <small>
-          BLOQUEADOS
-        </small>
-
-        <strong id="statBlocked">
-          0
-        </strong>
-
+        <small>BLOQUEADOS</small>
+        <strong id="statBlocked">0</strong>
       </div>
 
     </section>
@@ -1018,6 +987,10 @@
 
 
   <script>
+    // ==================================================
+    // CONFIG
+    // ==================================================
+
     const SUPABASE_URL =
       "https://vepoqxpnvlzzhmajcqzo.supabase.co";
 
@@ -1027,8 +1000,11 @@
     const ADMIN_API =
       `${SUPABASE_URL}/functions/v1/shopee-radar-admin`;
 
+
+    // Login administrativo agora permanece
+    // no mesmo domínio da Vercel.
     const LOGIN_ADMIN_URL =
-      "https://renanzim1.github.io/Shopee-radar/login.html?next=admin";
+      "login.html?next=admin";
 
 
     const createForm =
