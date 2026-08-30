@@ -2688,7 +2688,195 @@ document
               i === botao
             );
           });
+        if (filtroAtual === "zero") {
+          reiniciarRadar();
+        } else {
+          aplicarOrdenacao();
+        }
+      }
+    );
+  });
+
+// ======================================================
+// PESQUISA
+// ======================================================
+
+if (searchInput) {
+  searchInput.addEventListener(
+    "keydown",
+    event => {
+      if (event.key === "Enter") {
+        buscaDigitada =
+          searchInput.value.trim();
 
         if (filtroAtual === "zero") {
           reiniciarRadar();
+        } else {
+          aplicarOrdenacao();
+        }
       }
+    }
+  );
+
+  searchInput.addEventListener(
+    "search",
+    () => {
+      if (!searchInput.value) {
+        buscaDigitada = "";
+
+        if (filtroAtual === "zero") {
+          reiniciarRadar();
+        } else {
+          aplicarOrdenacao();
+        }
+      }
+    }
+  );
+}
+
+// ======================================================
+// NICHO
+// ======================================================
+
+if (categoryFilter) {
+  categoryFilter.addEventListener(
+    "change",
+    () => {
+      nichoAtual =
+        categoryFilter.value;
+
+      aplicarOrdenacao();
+    }
+  );
+}
+
+// ======================================================
+// SCROLL INFINITO
+// ======================================================
+
+async function carregarProximaPagina() {
+  if (
+    modoDownload ||
+    carregando ||
+    !temProximaPagina
+  ) {
+    return;
+  }
+
+  await carregarProdutos(
+    paginaAtual + 1,
+    true
+  );
+}
+
+window.addEventListener(
+  "scroll",
+  () => {
+    if (
+      modoDownload ||
+      carregando ||
+      !temProximaPagina
+    ) {
+      return;
+    }
+
+    if (
+      window.innerHeight +
+        window.scrollY >=
+      document.documentElement
+        .scrollHeight -
+        900
+    ) {
+      carregarProximaPagina();
+    }
+  },
+  {
+    passive: true
+  }
+);
+
+// ======================================================
+// ATUALIZAÇÃO AUTOMÁTICA
+// ======================================================
+
+setInterval(
+  () => {
+    if (
+      document.visibilityState ===
+        "visible" &&
+      !modoDownload &&
+      paginaAtual === 1 &&
+      !carregando
+    ) {
+      carregarProdutos(
+        1,
+        false
+      );
+    }
+  },
+  2 * 60 * 1000
+);
+
+// ======================================================
+// MODAL
+// ======================================================
+
+if (closeModal) {
+  closeModal.addEventListener(
+    "click",
+    fecharModal
+  );
+}
+
+if (productModal) {
+  productModal
+    .querySelector(".modal-overlay")
+    ?.addEventListener(
+      "click",
+      fecharModal
+    );
+}
+
+document.addEventListener(
+  "keydown",
+  event => {
+    if (
+      event.key === "Escape" &&
+      productModal &&
+      !productModal.hidden
+    ) {
+      fecharModal();
+    }
+  }
+);
+
+// ======================================================
+// LIMPEZA AO FECHAR / ATUALIZAR
+// ======================================================
+
+window.addEventListener(
+  "beforeunload",
+  () => {
+    liberarObjectUrlAnterior();
+  }
+);
+
+// ======================================================
+// INICIALIZAÇÃO
+// ======================================================
+
+filtroAtual = "radar";
+ordenacaoAtual = "relevance";
+modoDownload = false;
+
+if (videoDownloaderPage) {
+  videoDownloaderPage.hidden = true;
+}
+
+if (radarMainContent) {
+  radarMainContent.hidden = false;
+}
+
+esconderStatusVideo();
+limparResultadoVideo();
+reiniciarRadar();
