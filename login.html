@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#ff5a1f"
+  >
+
+  <title>Entrar — Shopee Radar</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #090b10;
+      --surface: #11151f;
+      --border: #252b38;
+      --text: #f5f7fb;
+      --muted: #9299a8;
+      --orange: #ff5a1f;
+    }
+
+    body {
+      min-height: 100vh;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      padding: 20px;
+
+      background:
+        radial-gradient(
+          circle at top right,
+          rgba(255, 90, 31, 0.12),
+          transparent 35%
+        ),
+        var(--bg);
+
+      color: var(--text);
+
+      font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+
+      padding: 26px;
+
+      border: 1px solid var(--border);
+      border-radius: 22px;
+
+      background:
+        linear-gradient(
+          145deg,
+          #151922,
+          #0f1218
+        );
+
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      margin-bottom: 24px;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 12px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #ff4d1c,
+          #ff7a00
+        );
+
+      font-size: 21px;
+    }
+
+    .brand h1 {
+      font-size: 21px;
+      font-weight: 900;
+    }
+
+    .brand p {
+      margin-top: 3px;
+
+      color: var(--muted);
+
+      font-size: 11px;
+    }
+
+    .headline {
+      margin-bottom: 22px;
+    }
+
+    .headline h2 {
+      font-size: 28px;
+      line-height: 1.05;
+      font-weight: 900;
+    }
+
+    .headline span {
+      color: var(--orange);
+    }
+
+    .headline p {
+      margin-top: 9px;
+
+      color: var(--muted);
+
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .admin-notice {
+      display: none;
+
+      margin-bottom: 17px;
+      padding: 10px 12px;
+
+      border-radius: 10px;
+
+      border:
+        1px solid
+        rgba(255, 90, 31, 0.20);
+
+      background:
+        rgba(255, 90, 31, 0.07);
+
+      color: #ffae8f;
+
+      font-size: 11px;
+      line-height: 1.4;
+      font-weight: 700;
+    }
+
+    .field {
+      margin-bottom: 13px;
+    }
+
+    .field label {
+      display: block;
+
+      margin-bottom: 6px;
+
+      color: #b9bfca;
+
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .field input {
+      width: 100%;
+      height: 48px;
+
+      padding: 0 13px;
+
+      border: 1px solid var(--border);
+      border-radius: 12px;
+
+      outline: none;
+
+      background: #0b0e14;
+      color: var(--text);
+
+      font-size: 14px;
+    }
+
+    .field input:focus {
+      border-color:
+        rgba(255, 90, 31, 0.7);
+    }
+
+    .login-button {
+      width: 100%;
+      height: 50px;
+
+      margin-top: 6px;
+
+      border: 0;
+      border-radius: 12px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #ff4d1c,
+          #ff7a00
+        );
+
+      color: white;
+
+      font-size: 14px;
+      font-weight: 900;
+
+      cursor: pointer;
+    }
+
+    .login-button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .message {
+      display: none;
+
+      margin-top: 14px;
+      padding: 11px;
+
+      border-radius: 10px;
+
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .message.error {
+      display: block;
+
+      color: #ffb3b3;
+
+      background:
+        rgba(255, 77, 77, 0.08);
+
+      border:
+        1px solid
+        rgba(255, 77, 77, 0.2);
+    }
+
+    .message.success {
+      display: block;
+
+      color: #a9f5cc;
+
+      background:
+        rgba(50, 213, 131, 0.08);
+
+      border:
+        1px solid
+        rgba(50, 213, 131, 0.2);
+    }
+
+    .footer {
+      margin-top: 18px;
+
+      text-align: center;
+
+      color: var(--muted);
+
+      font-size: 10px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="login-card">
+
+    <div class="brand">
+
+      <div class="brand-icon">
+        ◉
+      </div>
+
+      <div>
+
+        <h1>
+          Shopee Radar
+        </h1>
+
+        <p>
+          Inteligência para afiliados
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="headline">
+
+      <h2>
+        Acesse seu
+        <span>Radar.</span>
+      </h2>
+
+      <p>
+        Entre com seu e-mail e senha para acessar
+        as oportunidades e análises.
+      </p>
+
+    </div>
+
+
+    <div
+      id="adminNotice"
+      class="admin-notice"
+    >
+      👑 Faça login com sua conta administradora
+      para abrir o painel de clientes.
+    </div>
+
+
+    <form id="loginForm">
+
+      <div class="field">
+
+        <label for="email">
+          E-MAIL
+        </label>
+
+        <input
+          id="email"
+          type="email"
+          autocomplete="email"
+          placeholder="seuemail@exemplo.com"
+          required
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label for="password">
+          SENHA
+        </label>
+
+        <input
+          id="password"
+          type="password"
+          autocomplete="current-password"
+          placeholder="Digite sua senha"
+          required
+        >
+
+      </div>
+
+
+      <button
+        id="loginButton"
+        class="login-button"
+        type="submit"
+      >
+        Entrar no Radar
+      </button>
+
+
+      <div
+        id="message"
+        class="message"
+      ></div>
+
+    </form>
+
+
+    <div class="footer">
+      Acesso exclusivo para usuários autorizados.
+      Uma conta pode ficar vinculada a um único aparelho.
+    </div>
+
+  </main>
+
+
+  <script>
+    // ==================================================
+    // CONFIG
+    // ==================================================
+
+    const SUPABASE_URL =
+      "https://vepoqxpnvlzzhmajcqzo.supabase.co";
+
+    const SUPABASE_KEY =
+      "sb_publishable_K7pfWLa17aOQq3hrkN5PnQ_0AKYuZa_";
+
+    const ACCESS_API =
+      `${SUPABASE_URL}/functions/v1/shopee-radar-access`;
+
+    const RADAR_URL =
+      "https://renanzim1.github.io/Shopee-radar/index.html";
+
+    const ADMIN_URL =
+      "https://renanzim1.github.io/Shopee-radar/admin.html";
+
+
+    // ==================================================
+    // DESTINO
+    // ==================================================
+
+    const parametros =
+      new URLSearchParams(
+        window.location.search
+      );
+
+    const destino =
+      parametros.get("next") === "admin"
+        ? "admin"
+        : "radar";
+
+
+    const adminNotice =
+      document.getElementById(
+        "adminNotice"
+      );
+
+    if (
+      destino === "admin"
+    ) {
+      adminNotice.style.display =
+        "block";
+    }
+
+
+    // ==================================================
+    // ELEMENTOS
+    // ==================================================
+
+    const form =
+      document.getElementById(
+        "loginForm"
+      );
+
+    const emailInput =
+      document.getElementById(
+        "email"
+      );
+
+    const passwordInput =
+      document.getElementById(
+        "password"
+      );
+
+    const button =
+      document.getElementById(
+        "loginButton"
+      );
+
+    const message =
+      document.getElementById(
+        "message"
+      );
+
+
+    // ==================================================
+    // MENSAGEM
+    // ==================================================
+
+    function mostrarMensagem(
+      texto,
+      tipo = "error"
+    ) {
+
+      message.textContent =
+        texto;
+
+      message.className =
+        `message ${tipo}`;
+    }
+
+
+    // ==================================================
+    // IDENTIFICADOR DO APARELHO
+    // ==================================================
+
+    function criarDeviceId() {
+
+      let id =
+        localStorage.getItem(
+          "shopeeRadarDeviceId"
+        );
+
+
+      if (
+        id &&
+        id.length >= 16
+      ) {
+        return id;
+      }
+
+
+      try {
+
+        if (
+          crypto &&
+          typeof crypto.randomUUID ===
+            "function"
+        ) {
+
+          id =
+            crypto.randomUUID();
+
+        }
+
+      } catch {
+        id = "";
+      }
+
+
+      if (!id) {
+
+        id =
+          [
+            Date.now(),
+            Math.random()
+              .toString(36)
+              .slice(2),
+            Math.random()
+              .toString(36)
+              .slice(2)
+          ].join("-");
+
+      }
+
+
+      localStorage.setItem(
+        "shopeeRadarDeviceId",
+        id
+      );
+
+
+      return id;
+    }
+
+
+    // ==================================================
+    // SESSÃO LOCAL
+    // ==================================================
+
+    function salvarSessao(
+      dados,
+      access
+    ) {
+
+      localStorage.setItem(
+        "shopeeRadarAccessToken",
+        dados.access_token
+      );
+
+
+      localStorage.setItem(
+        "shopeeRadarRefreshToken",
+        dados.refresh_token || ""
+      );
+
+
+      localStorage.setItem(
+        "shopeeRadarUser",
+        JSON.stringify(
+          dados.user || {}
+        )
+      );
+
+
+      localStorage.setItem(
+        "shopeeRadarAccess",
+        JSON.stringify(
+          access || {}
+        )
+      );
+    }
+
+
+    function limparSessao() {
+
+      localStorage.removeItem(
+        "shopeeRadarAccessToken"
+      );
+
+      localStorage.removeItem(
+        "shopeeRadarRefreshToken"
+      );
+
+      localStorage.removeItem(
+        "shopeeRadarUser"
+      );
+
+      localStorage.removeItem(
+        "shopeeRadarAccess"
+      );
+
+      // NÃO apagamos o device id.
+      // É justamente ele que identifica
+      // este aparelho.
+    }
+
+
+    // ==================================================
+    // VALIDAR DISPOSITIVO / ACESSO
+    // ==================================================
+
+    async function validarAcesso(
+      token
+    ) {
+
+      const deviceId =
+        criarDeviceId();
+
+
+      const resposta =
+        await fetch(
+          ACCESS_API,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              "apikey":
+                SUPABASE_KEY,
+
+              "Authorization":
+                `Bearer ${token}`
+            },
+
+            body:
+              JSON.stringify({
+                device_id:
+                  deviceId
+              })
+          }
+        );
+
+
+      let resultado = {};
+
+      try {
+
+        resultado =
+          await resposta.json();
+
+      } catch {
+
+        throw new Error(
+          "Não foi possível validar o acesso."
+        );
+
+      }
+
+
+      if (
+        !resposta.ok ||
+        resultado.ok === false
+      ) {
+
+        throw new Error(
+          resultado.erro ||
+          "Acesso não autorizado."
+        );
+
+      }
+
+
+      return resultado.access || {};
+    }
+
+
+    // ==================================================
+    // LOGIN
+    // ==================================================
+
+    form.addEventListener(
+      "submit",
+      async function(event) {
+
+        event.preventDefault();
+
+
+        button.disabled =
+          true;
+
+
+        button.textContent =
+          "Entrando...";
+
+
+        message.className =
+          "message";
+
+
+        try {
+
+          const email =
+            emailInput.value
+              .trim()
+              .toLowerCase();
+
+
+          const password =
+            passwordInput.value;
+
+
+          if (
+            !email ||
+            !password
+          ) {
+
+            throw new Error(
+              "Digite seu e-mail e sua senha."
+            );
+
+          }
+
+
+          // ============================================
+          // LOGIN NO SUPABASE
+          // ============================================
+
+          const resposta =
+            await fetch(
+              `${SUPABASE_URL}/auth/v1/token?grant_type=password`,
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+
+                  "apikey":
+                    SUPABASE_KEY
+                },
+
+                body:
+                  JSON.stringify({
+                    email,
+                    password
+                  })
+              }
+            );
+
+
+          const dados =
+            await resposta.json();
+
+
+          if (
+            !resposta.ok
+          ) {
+
+            throw new Error(
+              dados?.msg ||
+              dados?.error_description ||
+              dados?.message ||
+              "E-mail ou senha inválidos."
+            );
+
+          }
+
+
+          if (
+            !dados.access_token ||
+            !dados.user
+          ) {
+
+            throw new Error(
+              "Não foi possível iniciar sua sessão."
+            );
+
+          }
+
+
+          // ============================================
+          // VALIDAR:
+          // STATUS
+          // VENCIMENTO
+          // DISPOSITIVO
+          // ============================================
+
+          let acesso;
+
+          try {
+
+            acesso =
+              await validarAcesso(
+                dados.access_token
+              );
+
+          } catch (erroAcesso) {
+
+            limparSessao();
+
+            throw erroAcesso;
+
+          }
+
+
+          // ============================================
+          // ADMIN
+          // ============================================
+
+          if (
+            destino === "admin" &&
+            acesso.role !== "admin"
+          ) {
+
+            limparSessao();
+
+            throw new Error(
+              "Esta conta não possui permissão de administrador."
+            );
+
+          }
+
+
+          // ============================================
+          // SALVAR SESSÃO
+          // ============================================
+
+          salvarSessao(
+            dados,
+            acesso
+          );
+
+
+          mostrarMensagem(
+            destino === "admin"
+              ? "Administrador confirmado. Abrindo painel..."
+              : "Acesso liberado. Entrando...",
+            "success"
+          );
+
+
+          // ============================================
+          // REDIRECIONAMENTO
+          // ============================================
+
+          setTimeout(
+            function() {
+
+              if (
+                destino === "admin"
+              ) {
+
+                window.location.replace(
+                  ADMIN_URL
+                );
+
+              } else {
+
+                window.location.replace(
+                  RADAR_URL
+                );
+
+              }
+
+            },
+            350
+          );
+
+
+        } catch (erro) {
+
+          console.error(
+            "Erro no login:",
+            erro
+          );
+
+
+          mostrarMensagem(
+            erro?.message ||
+            "Não foi possível entrar."
+          );
+
+
+        } finally {
+
+          button.disabled =
+            false;
+
+
+          button.textContent =
+            "Entrar no Radar";
+
+        }
+
+      }
+    );
+  </script>
+
+</body>
+
+</html>
