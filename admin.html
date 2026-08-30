@@ -1,0 +1,2557 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#ff5a1f"
+  >
+
+  <title>Admin — Shopee Radar</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #090b10;
+      --surface: #11151f;
+      --surface2: #151a24;
+      --border: #252b38;
+
+      --text: #f5f7fb;
+      --muted: #9299a8;
+
+      --orange: #ff5a1f;
+      --green: #32d583;
+      --red: #ff4d4d;
+      --yellow: #fdb022;
+    }
+
+    body {
+      min-height: 100vh;
+
+      background:
+        radial-gradient(
+          circle at top right,
+          rgba(255, 90, 31, 0.10),
+          transparent 30%
+        ),
+        var(--bg);
+
+      color: var(--text);
+
+      font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+    }
+
+    body.auth-checking {
+      visibility: hidden;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 15px;
+
+      padding: 15px 18px;
+
+      border-bottom:
+        1px solid rgba(255,255,255,.07);
+
+      background:
+        rgba(9,11,16,.92);
+
+      backdrop-filter:
+        blur(14px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 12px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #ff4d1c,
+          #ff7a00
+        );
+
+      font-size: 20px;
+    }
+
+    .brand h1 {
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .brand p {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .logout {
+      padding: 9px 12px;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 10px;
+
+      background: var(--surface);
+      color: white;
+
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1100px;
+
+      margin: 0 auto;
+      padding: 22px 16px 50px;
+    }
+
+    .hero {
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      display: inline-block;
+
+      margin-bottom: 8px;
+
+      color: var(--orange);
+
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .08em;
+    }
+
+    .hero h2 {
+      max-width: 650px;
+
+      font-size:
+        clamp(
+          28px,
+          7vw,
+          44px
+        );
+
+      line-height: 1.05;
+      font-weight: 950;
+    }
+
+    .hero h2 span {
+      color: var(--orange);
+    }
+
+    .hero p {
+      max-width: 600px;
+
+      margin-top: 10px;
+
+      color: var(--muted);
+
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .stats {
+      display: grid;
+
+      grid-template-columns:
+        repeat(
+          4,
+          minmax(0,1fr)
+        );
+
+      gap: 10px;
+
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      padding: 15px;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 15px;
+
+      background:
+        linear-gradient(
+          145deg,
+          #151922,
+          #0f1218
+        );
+    }
+
+    .stat small {
+      display: block;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 900;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 7px;
+      font-size: 23px;
+    }
+
+    .panel {
+      margin-bottom: 18px;
+      padding: 17px;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 18px;
+
+      background:
+        linear-gradient(
+          145deg,
+          #151922,
+          #0f1218
+        );
+    }
+
+    .panel-title {
+      margin-bottom: 15px;
+    }
+
+    .panel-title h3 {
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    .panel-title p {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .form-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(
+          3,
+          minmax(0,1fr)
+        );
+
+      gap: 10px;
+    }
+
+    .field {
+      min-width: 0;
+    }
+
+    .field label {
+      display: block;
+
+      margin-bottom: 6px;
+
+      color: #b8bec9;
+
+      font-size: 9px;
+      font-weight: 900;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      height: 44px;
+
+      padding: 0 11px;
+
+      outline: none;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 11px;
+
+      background: #0b0e14;
+      color: white;
+
+      font-size: 12px;
+    }
+
+    .field input:focus,
+    .field select:focus {
+      border-color:
+        rgba(255,90,31,.75);
+    }
+
+    .create-button {
+      width: 100%;
+
+      margin-top: 12px;
+      padding: 13px;
+
+      border: 0;
+      border-radius: 11px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #ff4d1c,
+          #ff7a00
+        );
+
+      color: white;
+
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .create-button:disabled {
+      opacity: .55;
+      cursor: wait;
+    }
+
+    .message {
+      display: none;
+
+      margin-top: 12px;
+      padding: 11px;
+
+      border-radius: 10px;
+
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .message.success {
+      display: block;
+
+      color: #a9f5cc;
+
+      background:
+        rgba(50,213,131,.08);
+
+      border:
+        1px solid
+        rgba(50,213,131,.18);
+    }
+
+    .message.error {
+      display: block;
+
+      color: #ffb4b4;
+
+      background:
+        rgba(255,77,77,.08);
+
+      border:
+        1px solid
+        rgba(255,77,77,.18);
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 10px;
+
+      margin-bottom: 13px;
+    }
+
+    .search {
+      flex: 1;
+
+      height: 42px;
+
+      padding: 0 12px;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 11px;
+
+      outline: none;
+
+      background: #0b0e14;
+      color: white;
+
+      font-size: 12px;
+    }
+
+    .refresh {
+      height: 42px;
+
+      padding: 0 13px;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 11px;
+
+      background: var(--surface2);
+      color: white;
+
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .users {
+      display: grid;
+      gap: 10px;
+    }
+
+    .user-card {
+      padding: 14px;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 14px;
+
+      background: #0c0f15;
+    }
+
+    .user-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+
+      gap: 10px;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 900;
+      overflow-wrap: anywhere;
+    }
+
+    .user-email {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 10px;
+      overflow-wrap: anywhere;
+    }
+
+    .status {
+      flex-shrink: 0;
+
+      padding: 6px 8px;
+
+      border-radius: 20px;
+
+      font-size: 8px;
+      font-weight: 950;
+    }
+
+    .status.active {
+      color: #8ff0bd;
+
+      background:
+        rgba(50,213,131,.10);
+    }
+
+    .status.expired {
+      color: #ffd28a;
+
+      background:
+        rgba(253,176,34,.10);
+    }
+
+    .status.blocked {
+      color: #ffaaaa;
+
+      background:
+        rgba(255,77,77,.10);
+    }
+
+    .user-info {
+      display: grid;
+
+      grid-template-columns:
+        repeat(
+          3,
+          minmax(0,1fr)
+        );
+
+      gap: 7px;
+
+      margin-top: 12px;
+    }
+
+    .info {
+      padding: 9px;
+
+      border-radius: 9px;
+
+      background: #11151f;
+    }
+
+    .info small {
+      display: block;
+
+      color: var(--muted);
+
+      font-size: 7px;
+      font-weight: 900;
+    }
+
+    .info strong {
+      display: block;
+
+      margin-top: 4px;
+
+      font-size: 10px;
+
+      overflow-wrap: anywhere;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+
+      gap: 6px;
+
+      margin-top: 12px;
+    }
+
+    .action {
+      padding: 8px 9px;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 9px;
+
+      background: #151a24;
+      color: white;
+
+      font-size: 9px;
+      font-weight: 900;
+    }
+
+    .action.green {
+      color: #8ff0bd;
+    }
+
+    .action.yellow {
+      color: #ffd28a;
+    }
+
+    .action.red {
+      color: #ffaaaa;
+    }
+
+    .action.orange {
+      color: #ff9a6f;
+    }
+
+    .action.danger {
+      background:
+        rgba(255,77,77,.08);
+
+      border-color:
+        rgba(255,77,77,.22);
+
+      color: #ffaaaa;
+    }
+
+    .loading,
+    .empty {
+      padding: 35px 10px;
+
+      text-align: center;
+
+      color: var(--muted);
+
+      font-size: 12px;
+    }
+
+    @media (
+      max-width: 800px
+    ) {
+      .stats {
+        grid-template-columns:
+          repeat(
+            2,
+            minmax(0,1fr)
+          );
+      }
+
+      .form-grid {
+        grid-template-columns:
+          repeat(
+            2,
+            minmax(0,1fr)
+          );
+      }
+
+      .user-info {
+        grid-template-columns:
+          repeat(
+            2,
+            minmax(0,1fr)
+          );
+      }
+    }
+
+    @media (
+      max-width: 480px
+    ) {
+      .container {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .panel {
+        padding: 13px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .refresh {
+        width: 100%;
+      }
+
+      .user-info {
+        grid-template-columns:
+          repeat(
+            2,
+            minmax(0,1fr)
+          );
+      }
+    }
+  </style>
+</head>
+
+<body class="auth-checking">
+
+  <header class="topbar">
+
+    <div class="brand">
+
+      <div class="brand-icon">
+        ◉
+      </div>
+
+      <div>
+
+        <h1>
+          Shopee Radar
+        </h1>
+
+        <p>
+          PAINEL ADMINISTRATIVO
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <button
+      id="logoutButton"
+      class="logout"
+      type="button"
+    >
+      Sair
+    </button>
+
+  </header>
+
+
+  <main class="container">
+
+    <section class="hero">
+
+      <span class="eyebrow">
+        CONTROLE DE ACESSOS
+      </span>
+
+      <h2>
+        Gerencie seus
+        <span>clientes.</span>
+      </h2>
+
+      <p>
+        Crie acessos, controle vencimentos,
+        valores pagos, planos e aparelhos
+        autorizados no Shopee Radar.
+      </p>
+
+    </section>
+
+
+    <section class="stats">
+
+      <div class="stat">
+
+        <small>
+          USUÁRIOS
+        </small>
+
+        <strong id="statTotal">
+          0
+        </strong>
+
+      </div>
+
+
+      <div class="stat">
+
+        <small>
+          ATIVOS
+        </small>
+
+        <strong id="statActive">
+          0
+        </strong>
+
+      </div>
+
+
+      <div class="stat">
+
+        <small>
+          VENCIDOS
+        </small>
+
+        <strong id="statExpired">
+          0
+        </strong>
+
+      </div>
+
+
+      <div class="stat">
+
+        <small>
+          BLOQUEADOS
+        </small>
+
+        <strong id="statBlocked">
+          0
+        </strong>
+
+      </div>
+
+    </section>
+
+
+    <section class="panel">
+
+      <div class="panel-title">
+
+        <h3>
+          ➕ Criar novo acesso
+        </h3>
+
+        <p>
+          Defina cliente, senha, plano,
+          valor e tempo de acesso.
+        </p>
+
+      </div>
+
+
+      <form id="createForm">
+
+        <div class="form-grid">
+
+          <div class="field">
+
+            <label for="name">
+              NOME
+            </label>
+
+            <input
+              id="name"
+              type="text"
+              placeholder="Nome do cliente"
+              required
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="email">
+              E-MAIL
+            </label>
+
+            <input
+              id="email"
+              type="email"
+              placeholder="cliente@email.com"
+              required
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="password">
+              SENHA
+            </label>
+
+            <input
+              id="password"
+              type="text"
+              minlength="8"
+              placeholder="Mínimo 8 caracteres"
+              required
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="accessLabel">
+              PLANO
+            </label>
+
+            <input
+              id="accessLabel"
+              type="text"
+              value="Mensal"
+              placeholder="Ex: Mensal"
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="amountPaid">
+              VALOR PAGO
+            </label>
+
+            <input
+              id="amountPaid"
+              type="number"
+              min="0"
+              step="0.01"
+              value="0"
+              placeholder="0,00"
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="days">
+              TEMPO DE ACESSO
+            </label>
+
+            <select id="days">
+
+              <option value="1">
+                1 dia
+              </option>
+
+              <option value="3">
+                3 dias
+              </option>
+
+              <option value="7">
+                7 dias
+              </option>
+
+              <option value="15">
+                15 dias
+              </option>
+
+              <option
+                value="30"
+                selected
+              >
+                30 dias
+              </option>
+
+              <option value="60">
+                60 dias
+              </option>
+
+              <option value="90">
+                90 dias
+              </option>
+
+              <option value="365">
+                1 ano
+              </option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+
+        <button
+          id="createButton"
+          class="create-button"
+          type="submit"
+        >
+          Criar acesso
+        </button>
+
+
+        <div
+          id="createMessage"
+          class="message"
+        ></div>
+
+      </form>
+
+    </section>
+
+
+    <section class="panel">
+
+      <div class="panel-title">
+
+        <h3>
+          👥 Usuários
+        </h3>
+
+        <p>
+          Controle todos os acessos cadastrados.
+        </p>
+
+      </div>
+
+
+      <div class="toolbar">
+
+        <input
+          id="searchUser"
+          class="search"
+          type="search"
+          placeholder="Pesquisar cliente..."
+        >
+
+
+        <button
+          id="refreshButton"
+          class="refresh"
+          type="button"
+        >
+          ↻ Atualizar
+        </button>
+
+      </div>
+
+
+      <div
+        id="users"
+        class="users"
+      >
+
+        <div class="loading">
+          Carregando usuários...
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <script>
+    const SUPABASE_URL =
+      "https://vepoqxpnvlzzhmajcqzo.supabase.co";
+
+    const SUPABASE_KEY =
+      "sb_publishable_K7pfWLa17aOQq3hrkN5PnQ_0AKYuZa_";
+
+    const ADMIN_API =
+      `${SUPABASE_URL}/functions/v1/shopee-radar-admin`;
+
+    const LOGIN_ADMIN_URL =
+      "https://renanzim1.github.io/Shopee-radar/login.html?next=admin";
+
+
+    const createForm =
+      document.getElementById(
+        "createForm"
+      );
+
+    const createButton =
+      document.getElementById(
+        "createButton"
+      );
+
+    const createMessage =
+      document.getElementById(
+        "createMessage"
+      );
+
+    const usersContainer =
+      document.getElementById(
+        "users"
+      );
+
+    const searchUser =
+      document.getElementById(
+        "searchUser"
+      );
+
+    const refreshButton =
+      document.getElementById(
+        "refreshButton"
+      );
+
+    const logoutButton =
+      document.getElementById(
+        "logoutButton"
+      );
+
+    let usuarios = [];
+
+
+    function escapar(valor) {
+
+      return String(
+        valor ?? ""
+      )
+        .replaceAll(
+          "&",
+          "&amp;"
+        )
+        .replaceAll(
+          "<",
+          "&lt;"
+        )
+        .replaceAll(
+          ">",
+          "&gt;"
+        )
+        .replaceAll(
+          '"',
+          "&quot;"
+        )
+        .replaceAll(
+          "'",
+          "&#039;"
+        );
+    }
+
+
+    function dinheiro(valor) {
+
+      return Number(
+        valor || 0
+      ).toLocaleString(
+        "pt-BR",
+        {
+          style: "currency",
+          currency: "BRL"
+        }
+      );
+    }
+
+
+    function obterToken() {
+
+      return (
+        localStorage.getItem(
+          "shopeeRadarAccessToken"
+        ) || ""
+      );
+    }
+
+
+    function limparSessao() {
+
+      localStorage.removeItem(
+        "shopeeRadarAccessToken"
+      );
+
+      localStorage.removeItem(
+        "shopeeRadarRefreshToken"
+      );
+
+      localStorage.removeItem(
+        "shopeeRadarUser"
+      );
+
+      localStorage.removeItem(
+        "shopeeRadarAccess"
+      );
+    }
+
+
+    function irLoginAdmin() {
+
+      window.location.replace(
+        LOGIN_ADMIN_URL
+      );
+    }
+
+
+    async function chamarAdmin(
+      action,
+      dados = {}
+    ) {
+
+      const token =
+        obterToken();
+
+
+      if (!token) {
+
+        irLoginAdmin();
+
+        throw new Error(
+          "Sessão não encontrada."
+        );
+      }
+
+
+      const resposta =
+        await fetch(
+          ADMIN_API,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              "apikey":
+                SUPABASE_KEY,
+
+              "Authorization":
+                `Bearer ${token}`
+            },
+
+            body:
+              JSON.stringify({
+                action,
+                ...dados
+              })
+          }
+        );
+
+
+      let resultado = {};
+
+
+      try {
+
+        resultado =
+          await resposta.json();
+
+      } catch {
+
+        throw new Error(
+          "Resposta inválida do servidor."
+        );
+      }
+
+
+      if (
+        resposta.status === 401
+      ) {
+
+        limparSessao();
+
+        irLoginAdmin();
+
+        throw new Error(
+          "Sua sessão expirou."
+        );
+      }
+
+
+      if (
+        resposta.status === 403
+      ) {
+
+        throw new Error(
+          resultado.erro ||
+          "Você não possui permissão de administrador."
+        );
+      }
+
+
+      if (
+        !resposta.ok ||
+        resultado.ok === false
+      ) {
+
+        throw new Error(
+          resultado.erro ||
+          "Não foi possível concluir a operação."
+        );
+      }
+
+
+      return resultado;
+    }
+
+
+    function formatarData(valor) {
+
+      if (!valor) {
+        return "Sem vencimento";
+      }
+
+
+      const data =
+        new Date(valor);
+
+
+      if (
+        Number.isNaN(
+          data.getTime()
+        )
+      ) {
+        return "—";
+      }
+
+
+      return data.toLocaleString(
+        "pt-BR",
+        {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        }
+      );
+    }
+
+
+    function tempoRestante(valor) {
+
+      if (!valor) {
+        return "∞";
+      }
+
+
+      const diferenca =
+        new Date(valor).getTime() -
+        Date.now();
+
+
+      if (
+        diferenca <= 0
+      ) {
+
+        return "Vencido";
+      }
+
+
+      const totalMinutos =
+        Math.floor(
+          diferenca /
+          60000
+        );
+
+
+      const dias =
+        Math.floor(
+          totalMinutos /
+          1440
+        );
+
+
+      const horas =
+        Math.floor(
+          (
+            totalMinutos %
+            1440
+          ) /
+          60
+        );
+
+
+      const minutos =
+        totalMinutos %
+        60;
+
+
+      if (
+        dias > 0
+      ) {
+
+        return `${dias}d ${horas}h`;
+      }
+
+
+      if (
+        horas > 0
+      ) {
+
+        return `${horas}h ${minutos}min`;
+      }
+
+
+      return `${minutos}min`;
+    }
+
+
+    function statusUsuario(
+      usuario
+    ) {
+
+      if (
+        usuario.status ===
+        "expired"
+      ) {
+
+        return {
+          classe: "expired",
+          texto: "VENCIDO"
+        };
+      }
+
+
+      if (
+        usuario.expires_at &&
+        new Date(
+          usuario.expires_at
+        ).getTime() <=
+        Date.now()
+      ) {
+
+        return {
+          classe: "expired",
+          texto: "VENCIDO"
+        };
+      }
+
+
+      if (
+        usuario.status ===
+        "blocked"
+      ) {
+
+        return {
+          classe: "blocked",
+          texto: "BLOQUEADO"
+        };
+      }
+
+
+      if (
+        usuario.status ===
+        "pending"
+      ) {
+
+        return {
+          classe: "blocked",
+          texto: "PENDENTE"
+        };
+      }
+
+
+      return {
+        classe: "active",
+        texto: "ATIVO"
+      };
+    }
+
+
+    function atualizarStats() {
+
+      let ativos = 0;
+      let vencidos = 0;
+      let bloqueados = 0;
+
+
+      usuarios.forEach(
+        usuario => {
+
+          const status =
+            statusUsuario(
+              usuario
+            );
+
+
+          if (
+            status.classe ===
+            "active"
+          ) {
+            ativos++;
+          }
+
+
+          if (
+            status.classe ===
+            "expired"
+          ) {
+            vencidos++;
+          }
+
+
+          if (
+            status.classe ===
+            "blocked"
+          ) {
+            bloqueados++;
+          }
+
+        }
+      );
+
+
+      document
+        .getElementById(
+          "statTotal"
+        )
+        .textContent =
+        usuarios.length;
+
+
+      document
+        .getElementById(
+          "statActive"
+        )
+        .textContent =
+        ativos;
+
+
+      document
+        .getElementById(
+          "statExpired"
+        )
+        .textContent =
+        vencidos;
+
+
+      document
+        .getElementById(
+          "statBlocked"
+        )
+        .textContent =
+        bloqueados;
+    }
+
+
+    function renderizarUsuarios() {
+
+      const termo =
+        searchUser.value
+          .trim()
+          .toLowerCase();
+
+
+      const lista =
+        usuarios.filter(
+          usuario => {
+
+            const nome =
+              String(
+                usuario.full_name ||
+                ""
+              ).toLowerCase();
+
+
+            const email =
+              String(
+                usuario.email ||
+                ""
+              ).toLowerCase();
+
+
+            return (
+              !termo ||
+              nome.includes(
+                termo
+              ) ||
+              email.includes(
+                termo
+              )
+            );
+          }
+        );
+
+
+      if (
+        !lista.length
+      ) {
+
+        usersContainer.innerHTML = `
+          <div class="empty">
+            Nenhum usuário encontrado.
+          </div>
+        `;
+
+        return;
+      }
+
+
+      usersContainer.innerHTML =
+        lista
+          .map(
+            usuario => {
+
+              const status =
+                statusUsuario(
+                  usuario
+                );
+
+
+              const dispositivo =
+                usuario.device_linked
+                  ? "Vinculado"
+                  : "Livre";
+
+
+              const plano =
+                usuario.access_label ||
+                usuario.plan ||
+                "Pro";
+
+
+              return `
+                <article
+                  class="user-card"
+                >
+
+                  <div
+                    class="user-top"
+                  >
+
+                    <div>
+
+                      <div
+                        class="user-name"
+                      >
+                        ${escapar(
+                          usuario.full_name ||
+                          "Sem nome"
+                        )}
+                      </div>
+
+
+                      <div
+                        class="user-email"
+                      >
+                        ${escapar(
+                          usuario.email ||
+                          ""
+                        )}
+                      </div>
+
+                    </div>
+
+
+                    <span
+                      class="
+                        status
+                        ${status.classe}
+                      "
+                    >
+                      ${status.texto}
+                    </span>
+
+                  </div>
+
+
+                  <div
+                    class="user-info"
+                  >
+
+                    <div class="info">
+
+                      <small>
+                        PLANO
+                      </small>
+
+                      <strong>
+                        ${escapar(
+                          plano
+                        )}
+                      </strong>
+
+                    </div>
+
+
+                    <div class="info">
+
+                      <small>
+                        VALOR PAGO
+                      </small>
+
+                      <strong>
+                        ${dinheiro(
+                          usuario.amount_paid
+                        )}
+                      </strong>
+
+                    </div>
+
+
+                    <div class="info">
+
+                      <small>
+                        VENCE EM
+                      </small>
+
+                      <strong>
+                        ${escapar(
+                          formatarData(
+                            usuario.expires_at
+                          )
+                        )}
+                      </strong>
+
+                    </div>
+
+
+                    <div class="info">
+
+                      <small>
+                        TEMPO RESTANTE
+                      </small>
+
+                      <strong>
+                        ${escapar(
+                          tempoRestante(
+                            usuario.expires_at
+                          )
+                        )}
+                      </strong>
+
+                    </div>
+
+
+                    <div class="info">
+
+                      <small>
+                        APARELHO
+                      </small>
+
+                      <strong>
+                        ${dispositivo}
+                      </strong>
+
+                    </div>
+
+
+                    <div class="info">
+
+                      <small>
+                        ÚLTIMO LOGIN
+                      </small>
+
+                      <strong>
+                        ${escapar(
+                          usuario.last_login_at
+                            ? formatarData(
+                                usuario.last_login_at
+                              )
+                            : "Nunca"
+                        )}
+                      </strong>
+
+                    </div>
+
+                  </div>
+
+
+                  ${
+                    usuario.role ===
+                    "admin"
+                      ? `
+                        <div
+                          style="
+                            margin-top:11px;
+                            color:#ff9a6f;
+                            font-size:9px;
+                            font-weight:900;
+                          "
+                        >
+                          👑 CONTA ADMINISTRADORA
+                        </div>
+                      `
+                      : `
+                        <div
+                          class="actions"
+                        >
+
+                          <button
+                            class="action green"
+                            onclick="
+                              renovarUsuario(
+                                '${usuario.id}',
+                                7
+                              )
+                            "
+                          >
+                            +7 dias
+                          </button>
+
+
+                          <button
+                            class="action green"
+                            onclick="
+                              renovarUsuario(
+                                '${usuario.id}',
+                                15
+                              )
+                            "
+                          >
+                            +15 dias
+                          </button>
+
+
+                          <button
+                            class="action green"
+                            onclick="
+                              renovarUsuario(
+                                '${usuario.id}',
+                                30
+                              )
+                            "
+                          >
+                            +30 dias
+                          </button>
+
+
+                          <button
+                            class="action orange"
+                            onclick="
+                              editarFinanceiro(
+                                '${usuario.id}',
+                                '${escapar(
+                                  plano
+                                )}',
+                                '${Number(
+                                  usuario.amount_paid ||
+                                  0
+                                )}'
+                              )
+                            "
+                          >
+                            💳 Plano / valor
+                          </button>
+
+
+                          <button
+                            class="action orange"
+                            onclick="
+                              liberarDispositivo(
+                                '${usuario.id}'
+                              )
+                            "
+                          >
+                            📱 Liberar aparelho
+                          </button>
+
+
+                          ${
+                            usuario.status ===
+                            "active"
+                              ? `
+                                <button
+                                  class="action yellow"
+                                  onclick="
+                                    bloquearUsuario(
+                                      '${usuario.id}'
+                                    )
+                                  "
+                                >
+                                  Bloquear
+                                </button>
+                              `
+                              : `
+                                <button
+                                  class="action green"
+                                  onclick="
+                                    ativarUsuario(
+                                      '${usuario.id}'
+                                    )
+                                  "
+                                >
+                                  Ativar
+                                </button>
+                              `
+                          }
+
+
+                          <button
+                            class="action"
+                            onclick="
+                              trocarSenha(
+                                '${usuario.id}'
+                              )
+                            "
+                          >
+                            🔑 Trocar senha
+                          </button>
+
+
+                          <button
+                            class="action danger"
+                            onclick="
+                              encerrarAgora(
+                                '${usuario.id}'
+                              )
+                            "
+                          >
+                            ⛔ Encerrar acesso
+                          </button>
+
+
+                          <button
+                            class="action red"
+                            onclick="
+                              excluirUsuario(
+                                '${usuario.id}'
+                              )
+                            "
+                          >
+                            Excluir
+                          </button>
+
+                        </div>
+                      `
+                  }
+
+                </article>
+              `;
+            }
+          )
+          .join("");
+    }
+
+
+    async function carregarUsuarios() {
+
+      usersContainer.innerHTML = `
+        <div class="loading">
+          Carregando usuários...
+        </div>
+      `;
+
+
+      try {
+
+        const resultado =
+          await chamarAdmin(
+            "list"
+          );
+
+
+        usuarios =
+          Array.isArray(
+            resultado.users
+          )
+            ? resultado.users
+            : [];
+
+
+        atualizarStats();
+
+        renderizarUsuarios();
+
+
+      } catch (erro) {
+
+        usersContainer.innerHTML = `
+          <div class="empty">
+            ⚠️
+            ${escapar(
+              erro.message
+            )}
+          </div>
+        `;
+
+      }
+    }
+
+
+    createForm.addEventListener(
+      "submit",
+      async event => {
+
+        event.preventDefault();
+
+
+        createMessage.className =
+          "message";
+
+
+        createButton.disabled =
+          true;
+
+
+        createButton.textContent =
+          "Criando acesso...";
+
+
+        try {
+
+          const full_name =
+            document
+              .getElementById(
+                "name"
+              )
+              .value
+              .trim();
+
+
+          const email =
+            document
+              .getElementById(
+                "email"
+              )
+              .value
+              .trim()
+              .toLowerCase();
+
+
+          const password =
+            document
+              .getElementById(
+                "password"
+              )
+              .value;
+
+
+          const access_label =
+            document
+              .getElementById(
+                "accessLabel"
+              )
+              .value
+              .trim();
+
+
+          const amount_paid =
+            Number(
+              document
+                .getElementById(
+                  "amountPaid"
+                )
+                .value || 0
+            );
+
+
+          const days =
+            Number(
+              document
+                .getElementById(
+                  "days"
+                )
+                .value
+            );
+
+
+          if (
+            password.length <
+            8
+          ) {
+
+            throw new Error(
+              "A senha precisa ter pelo menos 8 caracteres."
+            );
+          }
+
+
+          await chamarAdmin(
+            "create",
+            {
+              full_name,
+              email,
+              password,
+              days,
+              access_label,
+              amount_paid
+            }
+          );
+
+
+          createMessage.textContent =
+            `Acesso criado por ${days} dia${days === 1 ? "" : "s"}.`;
+
+
+          createMessage.className =
+            "message success";
+
+
+          createForm.reset();
+
+
+          document
+            .getElementById(
+              "days"
+            )
+            .value =
+            "30";
+
+
+          document
+            .getElementById(
+              "accessLabel"
+            )
+            .value =
+            "Mensal";
+
+
+          document
+            .getElementById(
+              "amountPaid"
+            )
+            .value =
+            "0";
+
+
+          await carregarUsuarios();
+
+
+        } catch (erro) {
+
+          createMessage.textContent =
+            erro.message;
+
+
+          createMessage.className =
+            "message error";
+
+
+        } finally {
+
+          createButton.disabled =
+            false;
+
+
+          createButton.textContent =
+            "Criar acesso";
+
+        }
+
+      }
+    );
+
+
+    async function renovarUsuario(
+      id,
+      days
+    ) {
+
+      try {
+
+        await chamarAdmin(
+          "renew",
+          {
+            user_id: id,
+            days
+          }
+        );
+
+
+        await carregarUsuarios();
+
+
+      } catch (erro) {
+
+        alert(
+          erro.message
+        );
+
+      }
+    }
+
+
+    async function editarFinanceiro(
+      id,
+      planoAtual,
+      valorAtual
+    ) {
+
+      const plano =
+        prompt(
+          "Nome do plano:",
+          planoAtual
+        );
+
+
+      if (
+        plano === null
+      ) {
+        return;
+      }
+
+
+      const valor =
+        prompt(
+          "Valor pago em reais:",
+          valorAtual
+        );
+
+
+      if (
+        valor === null
+      ) {
+        return;
+      }
+
+
+      const amount_paid =
+        Number(
+          String(valor)
+            .replace(",", ".")
+        );
+
+
+      if (
+        !Number.isFinite(
+          amount_paid
+        ) ||
+        amount_paid < 0
+      ) {
+
+        alert(
+          "Digite um valor válido."
+        );
+
+        return;
+      }
+
+
+      try {
+
+        await chamarAdmin(
+          "update_billing",
+          {
+            user_id: id,
+            access_label:
+              plano.trim() ||
+              "Pro",
+            amount_paid
+          }
+        );
+
+
+        await carregarUsuarios();
+
+
+      } catch (erro) {
+
+        alert(
+          erro.message
+        );
+
+      }
+    }
+
+
+    async function bloquearUsuario(
+      id
+    ) {
+
+      const confirmar =
+        confirm(
+          "Bloquear o acesso deste usuário?"
+        );
+
+
+      if (
+        !confirmar
+      ) {
+        return;
+      }
+
+
+      try {
+
+        await chamarAdmin(
+          "block",
+          {
+            user_id: id
+          }
+        );
+
+
+        await carregarUsuarios();
+
+
+      } catch (erro) {
+
+        alert(
+          erro.message
+        );
+
+      }
+    }
+
+
+    async function ativarUsuario(
+      id
+    ) {
+
+      try {
+
+        await chamarAdmin(
+          "activate",
+          {
+            user_id: id
+          }
+        );
+
+
+        await carregarUsuarios();
+
+
+      } catch (erro) {
+
+        alert(
+          erro.message
+        );
+
+      }
+    }
+
+
+    async function encerrarAgora(
+      id
+    ) {
+
+      const confirmar =
+        confirm(
+          "Encerrar o acesso deste usuário agora? Ele perderá o acesso imediatamente."
+        );
+
+
+      if (
+        !confirmar
+      ) {
+        return;
+      }
+
+
+      try {
+
+        await chamarAdmin(
+          "expire_now",
+          {
+            user_id: id
+          }
+        );
+
+
+        await carregarUsuarios();
+
+
+        alert(
+          "Acesso encerrado."
+        );
+
+
+      } catch (erro) {
+
+        alert(
+          erro.message
+        );
+
+      }
+    }
+
+
+    async function liberarDispositivo(
+      id
+    ) {
+
+      const confirmar =
+        confirm(
+          "Liberar esta conta para um novo aparelho?"
+        );
+
+
+      if (
+        !confirmar
+      ) {
+        return;
+      }
+
+
+      try {
+
+        await chamarAdmin(
+          "reset_device",
+          {
+            user_id: id
+          }
+        );
+
+
+        await carregarUsuarios();
+
+
+      } catch (erro) {
+
+        alert(
+          erro.message
+        );
+
+      }
+    }
+
+
+    async function trocarSenha(
+      id
+    ) {
+
+      const password =
+        prompt(
+          "Digite a nova senha. Mínimo 8 caracteres:"
+        );
+
+
+      if (
+        !password
+      ) {
+        return;
+      }
+
+
+      if (
+        password.length <
+        8
+      ) {
+
+        alert(
+          "A senha precisa ter pelo menos 8 caracteres."
+        );
+
+        return;
+      }
+
+
+      try {
+
+        await chamarAdmin(
+          "set_password",
+          {
+            user_id: id,
+            password
+          }
+        );
+
+
+        alert(
+          "Senha alterada com sucesso."
+        );
+
+
+      } catch (erro) {
+
+        alert(
+          erro.message
+        );
+
+      }
+    }
+
+
+    async function excluirUsuario(
+      id
+    ) {
+
+      const confirmar =
+        confirm(
+          "Tem certeza que deseja excluir este usuário permanentemente?"
+        );
+
+
+      if (
+        !confirmar
+      ) {
+        return;
+      }
+
+
+      try {
+
+        await chamarAdmin(
+          "delete",
+          {
+            user_id: id
+          }
+        );
+
+
+        await carregarUsuarios();
+
+
+      } catch (erro) {
+
+        alert(
+          erro.message
+        );
+
+      }
+    }
+
+
+    searchUser.addEventListener(
+      "input",
+      renderizarUsuarios
+    );
+
+
+    refreshButton.addEventListener(
+      "click",
+      carregarUsuarios
+    );
+
+
+    logoutButton.addEventListener(
+      "click",
+      () => {
+
+        limparSessao();
+
+        window.location.replace(
+          LOGIN_ADMIN_URL
+        );
+
+      }
+    );
+
+
+    setInterval(
+      () => {
+
+        if (
+          usuarios.length
+        ) {
+
+          atualizarStats();
+
+          renderizarUsuarios();
+
+        }
+
+      },
+      60000
+    );
+
+
+    async function iniciarAdmin() {
+
+      const token =
+        obterToken();
+
+
+      if (
+        !token
+      ) {
+
+        irLoginAdmin();
+
+        return;
+      }
+
+
+      try {
+
+        const resultado =
+          await chamarAdmin(
+            "list"
+          );
+
+
+        usuarios =
+          Array.isArray(
+            resultado.users
+          )
+            ? resultado.users
+            : [];
+
+
+        document
+          .body
+          .classList
+          .remove(
+            "auth-checking"
+          );
+
+
+        atualizarStats();
+
+        renderizarUsuarios();
+
+
+      } catch (erro) {
+
+        console.error(
+          erro
+        );
+
+      }
+    }
+
+
+    iniciarAdmin();
+  </script>
+
+</body>
+
+</html>
