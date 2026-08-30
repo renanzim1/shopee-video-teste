@@ -3,7 +3,7 @@
 // VERSÃO COMPLETA
 // NICHO CORRIGIDO + COMISSÃO SOMENTE VISUAL
 // DOWNLOAD ORIGINAL/HD + LIMPEZA LOCAL DE METADADOS
-// NETLIFY SAME-ORIGIN
+// VERCEL SAME-ORIGIN
 // ======================================================
 
 // APIS
@@ -12,9 +12,9 @@ const ZERO_API = "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shopee-r
 const RANKING_API = "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shopee-radar-ranking";
 const PACKS_API = "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shopee-radar-videos";
 
-// V6.1 NO MESMO DOMÍNIO DO RADAR
+// V6.1 NO MESMO DOMÍNIO DO RADAR — VERCEL
 const SHOPEE_VIDEO_API =
-  "/.netlify/functions/shopee-test";
+  "/api/shopee-test";
 
 const MEDIABUNNY_MODULE =
   "https://cdn.jsdelivr.net/npm/mediabunny/+esm";
@@ -2117,7 +2117,7 @@ async function buscarVideoShopee() {
       dados = await resposta.json();
     } catch {
       throw new Error(
-        "A Netlify respondeu em um formato inválido."
+        "A Vercel respondeu em um formato inválido."
       );
     }
 
@@ -2477,7 +2477,7 @@ async function limparMetadadosVideo() {
         .test(mensagem)
     ) {
       mostrarStatusVideo(
-        "⚠️ O Original/HD foi encontrado, mas o navegador bloqueou a leitura direta do MP4. Será necessário ativar o proxy de transmissão da Netlify.",
+        "⚠️ O Original/HD foi encontrado, mas o navegador bloqueou a leitura direta do MP4. Será necessário ativar um proxy de transmissão.",
         "error"
       );
     } else {
@@ -2691,210 +2691,4 @@ document
 
         if (filtroAtual === "zero") {
           reiniciarRadar();
-        } else {
-          aplicarOrdenacao();
-        }
       }
-    );
-  });
-
-// ======================================================
-// BUSCA
-// ======================================================
-
-if (searchInput) {
-  searchInput.addEventListener(
-    "keydown",
-    event => {
-      if (modoDownload) return;
-
-      if (event.key === "Enter") {
-        buscaDigitada =
-          searchInput.value.trim();
-
-        if (filtroAtual === "zero") {
-          reiniciarRadar();
-        } else {
-          aplicarOrdenacao();
-        }
-      }
-    }
-  );
-
-  searchInput.addEventListener(
-    "search",
-    () => {
-      if (modoDownload) return;
-
-      if (!searchInput.value) {
-        buscaDigitada = "";
-
-        if (filtroAtual === "zero") {
-          reiniciarRadar();
-        } else {
-          aplicarOrdenacao();
-        }
-      }
-    }
-  );
-}
-
-// ======================================================
-// NICHO
-// ======================================================
-
-if (categoryFilter) {
-  categoryFilter.addEventListener(
-    "change",
-    () => {
-      if (modoDownload) return;
-
-      nichoAtual =
-        categoryFilter.value;
-
-      aplicarOrdenacao();
-    }
-  );
-}
-
-// ======================================================
-// SCROLL INFINITO
-// ======================================================
-
-async function carregarProximaPagina() {
-  if (
-    modoDownload ||
-    carregando ||
-    !temProximaPagina
-  ) {
-    return;
-  }
-
-  await carregarProdutos(
-    paginaAtual + 1,
-    true
-  );
-}
-
-window.addEventListener(
-  "scroll",
-  () => {
-    if (
-      modoDownload ||
-      carregando ||
-      !temProximaPagina
-    ) {
-      return;
-    }
-
-    const chegouPertoDoFim =
-      window.innerHeight +
-      window.scrollY >=
-      document.documentElement
-        .scrollHeight -
-      900;
-
-    if (chegouPertoDoFim) {
-      carregarProximaPagina();
-    }
-  },
-  {
-    passive: true
-  }
-);
-
-// ======================================================
-// ATUALIZAÇÃO SILENCIOSA
-// ======================================================
-
-setInterval(
-  () => {
-    if (
-      !modoDownload &&
-      document.visibilityState === "visible" &&
-      paginaAtual === 1 &&
-      !carregando
-    ) {
-      carregarProdutos(
-        1,
-        false
-      );
-    }
-  },
-  2 * 60 * 1000
-);
-
-// ======================================================
-// MODAL
-// ======================================================
-
-if (closeModal) {
-  closeModal.addEventListener(
-    "click",
-    fecharModal
-  );
-}
-
-if (productModal) {
-  productModal
-    .querySelector(".modal-overlay")
-    ?.addEventListener(
-      "click",
-      fecharModal
-    );
-}
-
-document.addEventListener(
-  "keydown",
-  e => {
-    if (
-      e.key === "Escape" &&
-      productModal &&
-      !productModal.hidden
-    ) {
-      fecharModal();
-    }
-  }
-);
-
-// ======================================================
-// LIMPEZA DE MEMÓRIA AO SAIR DA PÁGINA
-// ======================================================
-
-window.addEventListener(
-  "pagehide",
-  () => {
-    liberarObjectUrlAnterior();
-
-    videoLimpoBlob = null;
-    videoOriginalUrl = "";
-  }
-);
-
-window.addEventListener(
-  "beforeunload",
-  () => {
-    liberarObjectUrlAnterior();
-
-    videoLimpoBlob = null;
-    videoOriginalUrl = "";
-  }
-);
-
-// ======================================================
-// INICIALIZAÇÃO
-// ======================================================
-
-filtroAtual = "radar";
-ordenacaoAtual = "relevance";
-modoDownload = false;
-
-if (videoDownloaderPage) {
-  videoDownloaderPage.hidden = true;
-}
-
-if (radarMainContent) {
-  radarMainContent.hidden = false;
-}
-
-reiniciarRadar();
