@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>Teste V6.1 - Vercel</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #0b0d12;
+      color: #ffffff;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      margin: 0 0 24px;
+      color: #9ca3af;
+      line-height: 1.5;
+    }
+
+    .card {
+      padding: 20px;
+      border: 1px solid #272b35;
+      border-radius: 18px;
+      background: #12151c;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    input {
+      width: 100%;
+      min-height: 54px;
+      padding: 0 16px;
+      border: 1px solid #343945;
+      border-radius: 12px;
+      outline: none;
+      background: #090b10;
+      color: #ffffff;
+      font-size: 16px;
+    }
+
+    input:focus {
+      border-color: #ff5a1f;
+    }
+
+    button {
+      width: 100%;
+      min-height: 54px;
+      margin-top: 14px;
+      border: 0;
+      border-radius: 12px;
+      background: #ff5a1f;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    #status {
+      display: none;
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 12px;
+      line-height: 1.5;
+    }
+
+    #status.loading {
+      display: block;
+      border: 1px solid #3b4250;
+      background: #171b23;
+    }
+
+    #status.success {
+      display: block;
+      border: 1px solid #16794a;
+      background: #0e291d;
+      color: #8df0b9;
+    }
+
+    #status.error {
+      display: block;
+      border: 1px solid #8b2c2c;
+      background: #2b1111;
+      color: #ffaaaa;
+    }
+
+    #result {
+      display: none;
+      margin-top: 20px;
+    }
+
+    video {
+      display: block;
+      width: 100%;
+      max-height: 520px;
+      border-radius: 14px;
+      background: #000000;
+    }
+
+    .video-info {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #0a0c11;
+      color: #b7bdc9;
+      font-size: 14px;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-bottom: 10px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: #183c2b;
+      color: #8df0b9;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .open-video {
+      display: block;
+      margin-top: 14px;
+      padding: 15px;
+      border-radius: 12px;
+      background: #ffffff;
+      color: #111111;
+      text-align: center;
+      text-decoration: none;
+      font-weight: 800;
+    }
+
+    .json-title {
+      margin-top: 24px;
+      margin-bottom: 8px;
+      font-weight: 800;
+    }
+
+    pre {
+      overflow-x: auto;
+      max-height: 400px;
+      margin: 0;
+      padding: 14px;
+      border: 1px solid #272b35;
+      border-radius: 12px;
+      background: #080a0e;
+      color: #c8ced9;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <h1>Teste V6.1</h1>
+
+    <p class="subtitle">
+      GitHub Pages → Vercel → Shopee → Original / HD
+    </p>
+
+    <div class="card">
+
+      <label for="shopeeLink">
+        Link do vídeo da Shopee
+      </label>
+
+      <input
+        id="shopeeLink"
+        type="url"
+        placeholder="Cole aqui o link da Shopee"
+        autocomplete="off"
+      />
+
+      <button
+        id="testButton"
+        type="button"
+      >
+        🔎 Testar V6.1
+      </button>
+
+      <div id="status"></div>
+
+      <div id="result">
+
+        <div class="badge">
+          Original / HD encontrado
+        </div>
+
+        <video
+          id="video"
+          controls
+          playsinline
+          preload="metadata"
+        ></video>
+
+        <div
+          id="videoInfo"
+          class="video-info"
+        ></div>
+
+        <a
+          id="openVideo"
+          class="open-video"
+          href="#"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Abrir vídeo Original / HD
+        </a>
+
+      </div>
+
+      <div class="json-title">
+        Resposta da API
+      </div>
+
+      <pre id="jsonOutput">
+Nenhum teste realizado.
+      </pre>
+
+    </div>
+  </div>
+
+  <script>
+    const API_URL =
+      "https://shopee-video-teste.vercel.app/api/shopee-test";
+
+    const shopeeLink =
+      document.getElementById("shopeeLink");
+
+    const testButton =
+      document.getElementById("testButton");
+
+    const statusBox =
+      document.getElementById("status");
+
+    const result =
+      document.getElementById("result");
+
+    const video =
+      document.getElementById("video");
+
+    const videoInfo =
+      document.getElementById("videoInfo");
+
+    const openVideo =
+      document.getElementById("openVideo");
+
+    const jsonOutput =
+      document.getElementById("jsonOutput");
+
+    function setStatus(type, message) {
+      statusBox.className = type;
+      statusBox.textContent = message;
+    }
+
+    function resetResult() {
+      result.style.display = "none";
+
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+
+      openVideo.href = "#";
+
+      videoInfo.textContent = "";
+
+      jsonOutput.textContent =
+        "Aguardando resposta...";
+    }
+
+    async function testarV61() {
+      const link =
+        shopeeLink.value.trim();
+
+      if (!link) {
+        setStatus(
+          "error",
+          "Cole um link da Shopee primeiro."
+        );
+
+        return;
+      }
+
+      resetResult();
+
+      testButton.disabled = true;
+      testButton.textContent =
+        "⏳ Buscando Original / HD...";
+
+      setStatus(
+        "loading",
+        "Chamando a V6.1 na Vercel..."
+      );
+
+      try {
+        const response = await fetch(
+          API_URL,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              "Accept":
+                "application/json"
+            },
+
+            body: JSON.stringify({
+              url: link
+            }),
+
+            cache: "no-store"
+          }
+        );
+
+        const text =
+          await response.text();
+
+        let data;
+
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error(
+            "A Vercel respondeu, mas a resposta não é JSON: " +
+            text.slice(0, 300)
+          );
+        }
+
+        jsonOutput.textContent =
+          JSON.stringify(
+            data,
+            null,
+            2
+          );
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+            "Erro HTTP " +
+            response.status
+          );
+        }
+
+        if (
+          !data.ok ||
+          !data.original_found
+        ) {
+          throw new Error(
+            data.error ||
+            "Original / HD não encontrado."
+          );
+        }
+
+        const videoUrl =
+          data.original_url ||
+          data.mp4 ||
+          data.media ||
+          data.variants?.[0]?.url;
+
+        if (!videoUrl) {
+          throw new Error(
+            "A API informou sucesso, mas não devolveu a URL do vídeo."
+          );
+        }
+
+        video.src = videoUrl;
+        video.load();
+
+        openVideo.href =
+          videoUrl;
+
+        const variant =
+          data.variants?.[0];
+
+        videoInfo.textContent =
+          "Versão: " +
+          (data.version || "-") +
+          " • HTTP do vídeo: " +
+          (
+            variant?.status ||
+            data.verification?.status ||
+            "-"
+          ) +
+          " • Tipo: " +
+          (
+            variant?.content_type ||
+            data.verification?.contentType ||
+            "video/mp4"
+          );
+
+        result.style.display =
+          "block";
+
+        setStatus(
+          "success",
+          "✅ V6.1 funcionando: Original / HD encontrado."
+        );
+
+      } catch (error) {
+
+        setStatus(
+          "error",
+          "❌ " +
+          (
+            error?.message ||
+            String(error)
+          )
+        );
+
+      } finally {
+
+        testButton.disabled =
+          false;
+
+        testButton.textContent =
+          "🔎 Testar V6.1";
+      }
+    }
+
+    testButton.addEventListener(
+      "click",
+      testarV61
+    );
+
+    shopeeLink.addEventListener(
+      "keydown",
+      event => {
+        if (event.key === "Enter") {
+          testarV61();
+        }
+      }
+    );
+  </script>
+</body>
+</html>
